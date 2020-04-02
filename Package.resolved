@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "NotenikUtils",
+        "repositoryURL": "https://github.com/hbowie/NotenikUtils",
+        "state": {
+          "branch": null,
+          "revision": "c64df79b9b9f5e11ef97964375b50fe5c42241d6",
+          "version": "0.2.0"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
