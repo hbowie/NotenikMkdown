@@ -19,7 +19,7 @@ import NotenikUtils
 /// - Set the wiki link formatting, if needed.
 /// - Call the parse method.
 /// - Retrieve the generated HTML from the html variable. 
-class MkdownParser {
+public class MkdownParser {
     
     // ===============================================================
     //
@@ -92,7 +92,7 @@ class MkdownParser {
 
     
     /// Initialize with an empty string.
-    init() {
+    public init() {
         nextIndex = mkdown.startIndex
         startText = nextIndex
         startLine = nextIndex
@@ -104,7 +104,7 @@ class MkdownParser {
     }
     
     /// Initialize with a string that will be copied.
-    init(_ mkdown: String) {
+    public init(_ mkdown: String) {
         self.mkdown = mkdown
         nextIndex = self.mkdown.startIndex
         startText = nextIndex
@@ -117,7 +117,7 @@ class MkdownParser {
     }
     
     /// Try to initialize by reading input from a URL.
-    init?(_ url: URL) {
+    public init?(_ url: URL) {
         do {
             try mkdown = String(contentsOf: url)
             nextIndex = mkdown.startIndex
@@ -135,7 +135,7 @@ class MkdownParser {
     }
     
     /// If using wiki-style links, set the formatting options before performing the parse operation.
-    func setWikiLinkFormatting(prefix: String,
+    public func setWikiLinkFormatting(prefix: String,
                                format: WikiLinkFormat,
                                suffix: String,
                                lookup: MkdownWikiLinkLookup? = nil) {
@@ -146,7 +146,7 @@ class MkdownParser {
     }
     
     /// Perform the parsing.
-    func parse() {
+    public func parse() {
         mdToLines()
         linesOut()
     }
@@ -613,7 +613,7 @@ class MkdownParser {
     
     var writer = Markedup()
     
-    var html: String { return writer.code }
+    public var html: String { return writer.code }
     
     var lastQuoteLevel = 0
     var openBlock = ""
@@ -1739,12 +1739,6 @@ class MkdownParser {
         case title
         case url
         case autoLink
-    }
-    
-    /// The formatting to be applied to the ID.
-    enum WikiLinkFormat {
-        case common
-        case fileName
     }
     
 }

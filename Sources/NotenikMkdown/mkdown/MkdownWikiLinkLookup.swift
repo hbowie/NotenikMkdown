@@ -9,7 +9,7 @@
 import Foundation
 
 /// A protocol for looking up a title and transforming it to a different value.
-protocol MkdownWikiLinkLookup {
+public protocol MkdownWikiLinkLookup {
     
     func mkdownWikiLinkLookup(title: String) -> String
     
