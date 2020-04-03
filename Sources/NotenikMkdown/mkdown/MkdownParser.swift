@@ -83,6 +83,14 @@ public class MkdownParser {
     
     var headingNumbers = [0, 0, 0, 0, 0, 0, 0]
     
+    /// A static utility function to convert markdown to HTML and write it to an instance of Markedup. 
+    public static func markdownToMarkedup(markdown: String, wikiLinkLookup: MkdownWikiLinkLookup?, writer: Markedup) {
+        let md = MkdownParser(markdown)
+        md.wikiLinkLookup = wikiLinkLookup
+        md.parse()
+        writer.append(md.html)
+    }
+    
     
     // ===========================================================
     //
