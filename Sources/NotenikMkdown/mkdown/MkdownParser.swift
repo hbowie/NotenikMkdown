@@ -68,6 +68,7 @@ public class MkdownParser {
     var possibleTag = ""
     var goodTag = false
     var following = false
+    var followingType: MkdownLineType = .ordinaryText
     
     var openHTMLblockTag = ""
     var openHTMLblock = false
@@ -83,8 +84,12 @@ public class MkdownParser {
     
     var headingNumbers = [0, 0, 0, 0, 0, 0, 0]
     
+    var indentToCode = false
+    
     /// A static utility function to convert markdown to HTML and write it to an instance of Markedup. 
-    public static func markdownToMarkedup(markdown: String, wikiLinkLookup: MkdownWikiLinkLookup?, writer: Markedup) {
+    public static func markdownToMarkedup(markdown: String,
+                                          wikiLinkLookup: MkdownWikiLinkLookup?,
+                                          writer: Markedup) {
         let md = MkdownParser(markdown)
         md.wikiLinkLookup = wikiLinkLookup
         md.parse()
@@ -230,6 +235,9 @@ public class MkdownParser {
                     leadingLeftAngleBracketAndSlash = true
                 } else {
                     possibleTag.append(char)
+                    if possibleTag == "!--" {
+                        goodTag = true
+                    }
                 }
             } 
             
@@ -297,11 +305,12 @@ public class MkdownParser {
                                                                     forLevel: nextLine.indentLevels)
                         if continuedBlock {
                             continue
-                        } else if nextLine.type != .code {
-                            nextLine.makeCode()
+                        } else {
+                            indentToCode = true
                             startText = nextIndex
                             phase = .text
                             nextLine.textFound = true
+                            continue
                         }
                     } else if char == ">" {
                         nextLine.blocks.append("blockquote")
@@ -314,7 +323,7 @@ public class MkdownParser {
                         startBullet = lastIndex
                         continue
                     } else if char.isNumber {
-                        if following {
+                        if following && followingType != .orderedItem {
                             phase = .text
                         } else {
                             leadingNumber = true
@@ -328,6 +337,15 @@ public class MkdownParser {
                     } else {
                         phase = .text
                     }
+                }
+            }
+            
+            // See if we're looking for code
+            if indentToCode && nextLine.type == .blank {
+                if !char.isWhitespace {
+                    nextLine.makeCode()
+                } else {
+                    continue
                 }
             }
             
@@ -404,7 +422,11 @@ public class MkdownParser {
         possibleTag = ""
         possibleTagPending = false
         goodTag = false
+        indentToCode = false
         following = lastLine.type == .ordinaryText || lastLine.type == .followOn
+        if lastLine.type != .followOn {
+            followingType = lastLine.type
+        }
     }
     
     /// Wrap up initial examination of the line and figure out what to do with it.
@@ -431,6 +453,8 @@ public class MkdownParser {
             } else {
                 nextLine.type = .linkDefExt
             }
+        } else if openHTMLblock {
+            // Don't bother checking anything else
         } else if nextLine.headingUnderlining && nextLine.horizontalRule {
             if lastLine.type == .blank {
                 nextLine.makeHorizontalRule()
@@ -453,7 +477,7 @@ public class MkdownParser {
             startText = startLine
             nextLine.makeOrdinary()
         } else if nextLine.leadingBulletAndSpace {
-            if following {
+            if following && followingType != .unorderedItem {
                 startText = startLine
                 nextLine.leadingBulletAndSpace = false
                 nextLine.type = .followOn
@@ -520,8 +544,13 @@ public class MkdownParser {
         if nextLine.type == .followOn {
             nextLine.carryBlockquotesForward(lastLine: lastLine)
         }
+        
         if nextLine.type == .followOn || nextLine.type == .ordinaryText {
             nextLine.addParagraph()
+        }
+        
+        if nextLine.type == .blank {
+            lastLine.trailingSpaceCount = 0
         }
         
         switch nextLine.type {
@@ -645,6 +674,7 @@ public class MkdownParser {
     func linesOut() {
         
         writer = Markedup()
+        writer.comment("Markdown to HTML conversion provided by NotenikMkdown")
         lastQuoteLevel = 0
         openBlocks = MkdownBlockStack()
         

@@ -34,7 +34,7 @@ This should just be an HTML comment:
 
 <!-- Comment -->
 
-Multiline:
+Multiline comment:
 
 <!--
 Blah
@@ -72,5 +72,3 @@ Hr's:
 <hr class="foo" id="bar"/>
 
 <hr class="foo" id="bar" >
-
-

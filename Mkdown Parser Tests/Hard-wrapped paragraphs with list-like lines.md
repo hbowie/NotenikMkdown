@@ -1,6 +1,6 @@
 Title:  Hard-wrapped paragraphs with list-like lines
 
-Seq:    107
+Seq:    5.4
 
 Body: 
 

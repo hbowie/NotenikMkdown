@@ -52,7 +52,7 @@ class MkdownLine {
     }
     
     var endsWithLineBreak: Bool {
-        return type != .blank && trailingSpaceCount >= 2
+        return type != .blank && type != .code && trailingSpaceCount >= 2
     }
     
     var indentLevels = 0
@@ -123,7 +123,7 @@ class MkdownLine {
         type = .followOn
         blocks = MkdownBlockStack()
         for block in previousLine.blocks.blocks {
-            self.blocks.append(block)
+            blocks.append(block)
         }
     }
     
@@ -141,6 +141,7 @@ class MkdownLine {
     
     func carryBlockquotesForward(lastLine: MkdownLine) {
         var insertionPoint = 0
+        if blocks.count > 0 && blocks.blocks[0].isBlockquote { return }
         for block in lastLine.blocks.blocks {
             if block.isBlockquote {
                 blocks.blocks.insert(MkdownBlock("blockquote"), at: insertionPoint)
