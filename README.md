@@ -34,7 +34,7 @@ The first phase of the parser breaks the input text down into lines, examining t
 
 * The enum 'MkdownLineType' defines the various types of lines. 
 
-* The class 'MkdownLine' stores each line, including its type, and other metadata about the line. 
+* The class 'MkdownLine' stores each line, including its type, and the blocks containing the line, and other metadata about the line. 
 
 * The class 'MkdownBlock' identifies an HTML block tag within which a line resides. 
 
