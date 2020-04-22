@@ -674,7 +674,7 @@ public class MkdownParser {
     func linesOut() {
         
         writer = Markedup()
-        writer.comment("Markdown to HTML conversion provided by NotenikMkdown")
+        // writer.comment("Markdown to HTML conversion provided by NotenikMkdown")
         lastQuoteLevel = 0
         openBlocks = MkdownBlockStack()
         
