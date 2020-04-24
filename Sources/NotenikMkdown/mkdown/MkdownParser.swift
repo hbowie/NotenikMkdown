@@ -1121,7 +1121,24 @@ public class MkdownParser {
         var matched = false
         while !matched && next < chunks.count {
             let nextChunk = chunks[next]
-            if nextChunk.type == firstChunk.type && next > forChunkAt + 1 {
+            var possibleEndingQuote = true
+            if firstChunk.type == .singleQuote {
+                let nextAfter = next + 1
+                if nextAfter < chunks.count {
+                    let followingChunk = chunks[nextAfter]
+                    if followingChunk.type == .plaintext {
+                        let followingChar = followingChunk.text.first
+                        if followingChar != nil {
+                            if followingChar!.isLetter || followingChar!.isNumber {
+                                possibleEndingQuote = false
+                            }
+                        }
+                    }
+                }
+            }
+            if possibleEndingQuote &&
+                nextChunk.type == firstChunk.type
+                && next > forChunkAt + 1 {
                 matched = true
                 if firstChunk.type == .doubleQuote {
                     firstChunk.type = .doubleCurlyQuoteOpen
