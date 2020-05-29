@@ -19,6 +19,9 @@ class MkdownChunk {
     var startsWithSpace = false
     var endsWithSpace = false
     
+    var textCount = 0
+    var wordCount = 0
+    
     var spaceBefore = true
     var _spaceAfter = true
     var spaceAfter: Bool {
@@ -57,6 +60,6 @@ class MkdownChunk {
             print(" ")
             print("\(indent)\(title)")
         }
-        print("\(indent)Chunk type: \(type), text: '\(text)'")
+        print("\(indent)Chunk type: \(type), words: \(wordCount), letters: \(textCount), text: '\(text)'")
     }
 }

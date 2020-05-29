@@ -35,12 +35,11 @@ public class MkdownParser {
     
     var mkdown:    String! = ""
     
-    
     let interNoteDomain = "https://ntnk.app/"
     var wikiLinkPrefix = ""
     var wikiLinkSuffix = ""
     var wikiLinkFormatting: WikiLinkFormat = .common
-    var wikiLinkLookup: MkdownWikiLinkLookup?
+    public var wikiLinkLookup: MkdownWikiLinkLookup?
     
     var nextIndex: String.Index
     
@@ -85,6 +84,8 @@ public class MkdownParser {
     var headingNumbers = [0, 0, 0, 0, 0, 0, 0]
     
     var indentToCode = false
+    
+    public var counts = MkdownCounts()
     
     /// A static utility function to convert markdown to HTML and write it to an instance of Markedup. 
     public static func markdownToMarkedup(markdown: String,
@@ -160,6 +161,12 @@ public class MkdownParser {
     
     /// Perform the parsing.
     public func parse() {
+        
+        counts.size = mkdown.count
+        counts.lines = 0
+        counts.words = 0
+        counts.text = 0
+        
         mdToLines()
         linesOut()
     }
@@ -432,6 +439,8 @@ public class MkdownParser {
     /// Wrap up initial examination of the line and figure out what to do with it.
     func finishLine() {
         
+        counts.lines += 1
+        
         // Capture the entire line for later processing.
         if endLine > startLine {
             nextLine.line = String(mkdown[startLine..<endLine])
@@ -665,6 +674,8 @@ public class MkdownParser {
     var start = -1
     var matchStart = -1
     
+    var anotherWord = false
+    
     var backslashed = false
     
     var openBlocks = MkdownBlockStack()
@@ -674,7 +685,6 @@ public class MkdownParser {
     func linesOut() {
         
         writer = Markedup()
-        // writer.comment("Markdown to HTML conversion provided by NotenikMkdown")
         lastQuoteLevel = 0
         openBlocks = MkdownBlockStack()
         
@@ -905,11 +915,18 @@ public class MkdownParser {
                 case " ":
                     if nextChunk.text.count == 0 {
                         nextChunk.startsWithSpace = true
+                    } else {
+                        if anotherWord {
+                            nextChunk.wordCount += 1
+                            anotherWord = false
+                        }
                     }
                     nextChunk.endsWithSpace = true
                     appendToNextChunk(char: char, lastChar: lastChar, line: line)
                 default:
                     appendToNextChunk(char: char, lastChar: lastChar, line: line)
+                    nextChunk.textCount += 1
+                    anotherWord = true
                 }
             }
             if !char.isWhitespace {
@@ -1002,6 +1019,13 @@ public class MkdownParser {
     /// Add the chunk to the array.
     func finishNextChunk(line: MkdownLine) {
         if nextChunk.text.count > 0 {
+            if nextChunk.type == .plaintext {
+                if anotherWord {
+                    nextChunk.wordCount += 1
+                }
+                counts.words += nextChunk.wordCount
+                counts.text += nextChunk.textCount
+            }
             addChunk(nextChunk)
         }
         nextChunk = MkdownChunk(line: line)
