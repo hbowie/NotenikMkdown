@@ -22,6 +22,7 @@ enum MkdownLineType {
     case linkDefExt
     case orderedItem
     case ordinaryText
+    case tableOfContents
     case unorderedItem
     
     var isListItem: Bool {

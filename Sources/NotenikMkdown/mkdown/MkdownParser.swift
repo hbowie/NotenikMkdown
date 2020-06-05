@@ -18,7 +18,8 @@ import NotenikUtils
 /// - Set the mkdown source, if not set as part of initialization.
 /// - Set the wiki link formatting, if needed.
 /// - Call the parse method.
-/// - Retrieve the generated HTML from the html variable. 
+/// - Retrieve the generated HTML from the html variable.
+
 public class MkdownParser {
     
     // ===============================================================
@@ -494,6 +495,9 @@ public class MkdownParser {
                 nextLine.makeUnordered(previousLine: lastLine,
                                        previousNonBlankLine: lastNonBlankLine)
             }
+        } else if nextLine.line.hasPrefix("[") && nextLine.line.lowercased() == "[toc]" {
+            nextLine.type = .tableOfContents
+            tocFound = true
         }
         
         // Check for lines of HTML
@@ -650,12 +654,15 @@ public class MkdownParser {
     
     var linkDict: [String:RefLink] = [:]
     var lines:    [MkdownLine] = []
+    var tocFound = false
 
     // ===========================================================
     //
     // Phase 2 - Take the lines and convert them to HTML output.
     //
     // ===========================================================
+    
+    var tocLines: [MkdownLine] = []
     
     var writer = Markedup()
     
@@ -684,11 +691,79 @@ public class MkdownParser {
     /// let's generate the output HTML.
     func linesOut() {
         
+        if tocFound {
+            genTableOfContents()
+        }
+        
+        genHTML()
+    }
+    
+    /// Generate a table of contents when requested.
+    func genTableOfContents() {
+        tocFound = false
+        tocLines = []
+        var firstHeadingLevel = 0
+        var lastHeadingLevel = 0
+        var indentLevels = 0
+        var lastLine = MkdownLine()
+        for line in lines {
+            if line.type == .tableOfContents {
+                tocFound = true
+                continue
+            }
+            if !tocFound {
+                continue
+            }
+            if line.type != .heading {
+                continue
+            }
+            
+            if firstHeadingLevel == 0 {
+                firstHeadingLevel = line.headingLevel
+                lastHeadingLevel = line.headingLevel
+            }
+            
+            let tocLine = MkdownLine()
+            
+            let headingText = line.text
+            let headingID = StringUtils.toCommonFileName(headingText)
+            tocLine.text = "[\(headingText)](#\(headingID))"
+            
+            if line.headingLevel > lastHeadingLevel {
+                indentLevels += 1
+                lastHeadingLevel = line.headingLevel
+            } else if line.headingLevel < lastHeadingLevel {
+                if indentLevels > 0 {
+                    indentLevels -= 1
+                }
+                lastHeadingLevel = line.headingLevel
+            }
+            tocLine.indentLevels = indentLevels
+            
+            tocLine.makeUnordered(previousLine: lastLine, previousNonBlankLine: lastLine)
+            
+            tocLines.append(tocLine)
+            lastLine = tocLine
+        }
+    }
+    
+    var mainLineIndex = 0
+    var tocLineIndex = 0
+    
+    /// Go through the Markdown lines, generating HTML.
+    func genHTML() {
         writer = Markedup()
         lastQuoteLevel = 0
         openBlocks = MkdownBlockStack()
         
-        for line in lines {
+        mainLineIndex = 0
+        tocLineIndex = 0
+        
+        var possibleLine = getNextLine()
+        
+        while possibleLine != nil {
+            
+            let line = possibleLine!
             
             if !line.followOn {
                 // Close any outstanding blocks that are no longer in effect.
@@ -714,7 +789,7 @@ public class MkdownParser {
                     } else if blockToOpen.isParagraph {
                         listItemIndex = 0
                     }
-                    openBlock(blockToOpen.tag)
+                    openBlock(blockToOpen.tag, text: line.text)
                     openBlocks.append(blockToOpen)
                     blockToOpenIndex += 1
                 }
@@ -724,7 +799,7 @@ public class MkdownParser {
                     let listBlock = openBlocks.blocks[listIndex]
                     if listBlock.isListTag && listBlock.listWithParagraphs {
                         let paraBlock = MkdownBlock("p")
-                        openBlock(paraBlock.tag)
+                        openBlock(paraBlock.tag, text: "")
                         openBlocks.append(paraBlock)
                     }
                 }
@@ -754,11 +829,36 @@ public class MkdownParser {
             default:
                 break
             }
+            
+            possibleLine = getNextLine()
+            
         }
         closeBlocks(from: 0)
     }
     
-    func openBlock(_ tag: String) {
+    /// Get the next markdown line to be processed, pulling from the table of contents array when appropriate.
+    func getNextLine() -> MkdownLine? {
+        guard mainLineIndex < lines.count else { return nil }
+        var nextLine = lines[mainLineIndex]
+        if nextLine.type == .tableOfContents {
+            if tocLineIndex < tocLines.count {
+                // Pull the next line from the ToC array
+                nextLine = tocLines[tocLineIndex]
+                tocLineIndex += 1
+                return nextLine
+            } else {
+                // Done with ToC array
+                mainLineIndex += 1
+                guard mainLineIndex < lines.count else { return nil }
+                nextLine = lines[mainLineIndex]
+            }
+        }
+        mainLineIndex += 1
+        return nextLine
+    }
+    
+    /// Start writing an HTML block.
+    func openBlock(_ tag: String, text: String) {
         outputUnwrittenChunks()
         switch tag {
         case "blockquote":
@@ -766,17 +866,17 @@ public class MkdownParser {
         case "code":
             writer.startCode()
         case "h1":
-            writer.startHeading(level: 1)
+            writer.startHeading(level: 1, id: StringUtils.toCommonFileName(text))
         case "h2":
-            writer.startHeading(level: 2)
+            writer.startHeading(level: 2, id: StringUtils.toCommonFileName(text))
         case "h3":
-            writer.startHeading(level: 3)
+            writer.startHeading(level: 3, id: StringUtils.toCommonFileName(text))
         case "h4":
-            writer.startHeading(level: 4)
+            writer.startHeading(level: 4, id: StringUtils.toCommonFileName(text))
         case "h5":
-            writer.startHeading(level: 5)
+            writer.startHeading(level: 5, id: StringUtils.toCommonFileName(text))
         case "h6":
-            writer.startHeading(level: 6)
+            writer.startHeading(level: 6, id: StringUtils.toCommonFileName(text))
         case "li":
             writer.startListItem()
         case "ol":
