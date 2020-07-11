@@ -1896,19 +1896,23 @@ public class MkdownParser {
     }
     
     func assembleWikiLink(title: String) -> String {
-        var formattedTitle = ""
-        switch wikiLinkFormatting {
-        case .common:
-            formattedTitle = StringUtils.toCommon(title)
-        case .fileName:
-            formattedTitle = StringUtils.toCommonFileName(title)
-        }
+        let formattedTitle = formatWikiLink(title)
         
         var link = formattedTitle
         if wikiLinkLookup != nil {
-            link = wikiLinkLookup!.mkdownWikiLinkLookup(title: formattedTitle)
+            link = wikiLinkLookup!.mkdownWikiLinkLookup(linkText: formattedTitle)
+            link = formatWikiLink(link)
         }
         return wikiLinkPrefix + link + wikiLinkSuffix
+    }
+    
+    func formatWikiLink(_ title: String) -> String {
+        switch wikiLinkFormatting {
+        case .common:
+            return StringUtils.toCommon(title)
+        case .fileName:
+            return StringUtils.toCommonFileName(title)
+        }
     }
     
     enum LinkElementDiverter {

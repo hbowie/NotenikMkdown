@@ -11,6 +11,6 @@ import Foundation
 /// A protocol for looking up a title and transforming it to a different value.
 public protocol MkdownWikiLinkLookup {
     
-    func mkdownWikiLinkLookup(title: String) -> String
+    func mkdownWikiLinkLookup(linkText: String) -> String
     
 }
