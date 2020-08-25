@@ -9,6 +9,7 @@
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
 //
 
+/// A reference-style link with a label, a link, and an optional title.
 class RefLink {
     var label = ""
     var link  = ""
