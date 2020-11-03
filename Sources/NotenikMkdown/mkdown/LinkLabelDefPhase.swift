@@ -12,10 +12,12 @@
 enum LinkLabelDefPhase {
     case na
     case leftBracket
+    case caret
     case rightBracket
     case colon
     case linkStart
     case linkEnd
     case titleStart
     case titleEnd
+    case noteStart
 }

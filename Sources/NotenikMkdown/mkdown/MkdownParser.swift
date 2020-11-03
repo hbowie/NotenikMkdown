@@ -3,7 +3,7 @@
 //  Notenik
 //
 //  Created by Herb Bowie on 2/25/20.
-//  Copyright © 2020 Herb Bowie (https://powersurgepub.com)
+//  Copyright © 2020 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -81,6 +81,8 @@ public class MkdownParser {
     var titleEndChar: Character = " "
     
     var refLink = RefLink()
+    var footnote = MkdownFootnote()
+    var withinFootnote = false
     
     var headingNumbers = [0, 0, 0, 0, 0, 0, 0]
     
@@ -182,6 +184,7 @@ public class MkdownParser {
     /// Make our first pass through the Markdown, identifying basic info about each line.
     func mdToLines() {
         
+        withinFootnote = false
         nextIndex = mkdown.startIndex
         beginLine()
         
@@ -307,18 +310,22 @@ public class MkdownParser {
                 } else {
                     spaceCount = 0
                     if char == "\t" || char == " " {
-                        nextLine.indentLevels += 1
-                        let continuedBlock = nextLine.continueBlock(previousLine: lastLine,
+                        if nextLine.indentLevels == 0 && withinFootnote {
+                            nextLine.withinFootnote = true
+                        } else {
+                            nextLine.indentLevels += 1
+                            let continuedBlock = nextLine.continueBlock(previousLine: lastLine,
                                                                     previousNonBlankLine: lastNonBlankLine,
                                                                     forLevel: nextLine.indentLevels)
-                        if continuedBlock {
-                            continue
-                        } else {
-                            indentToCode = true
-                            startText = nextIndex
-                            phase = .text
-                            nextLine.textFound = true
-                            continue
+                            if continuedBlock {
+                                continue
+                            } else {
+                                indentToCode = true
+                                startText = nextIndex
+                                phase = .text
+                                nextLine.textFound = true
+                                continue
+                            }
                         }
                     } else if char == ">" {
                         nextLine.blocks.append("blockquote")
@@ -331,7 +338,8 @@ public class MkdownParser {
                         startBullet = lastIndex
                         continue
                     } else if char.isNumber {
-                        if following && followingType != .orderedItem {
+                        if following &&
+                            (followingType != .orderedItem && followingType != .footnoteItem) {
                             phase = .text
                         } else {
                             leadingNumber = true
@@ -341,6 +349,7 @@ public class MkdownParser {
                     } else if char == "[" && nextLine.indentLevels < 1 {
                         linkLabelPhase = .leftBracket
                         refLink = RefLink()
+                        footnote = MkdownFootnote()
                         phase = .text
                     } else {
                         phase = .text
@@ -363,7 +372,7 @@ public class MkdownParser {
                     switch lastLine.type {
                     case .blank:
                         nextLine.makeOrdinary()
-                    case .ordinaryText, .followOn, .orderedItem, .unorderedItem:
+                    case .ordinaryText, .followOn, .orderedItem, .unorderedItem, .footnoteItem:
                         nextLine.makeFollowOn(previousLine: lastLine)
                     default:
                         nextLine.makeOrdinary()
@@ -396,6 +405,17 @@ public class MkdownParser {
                 // Let's see if we have a possible reference link definition in work.
                 if linkLabelPhase != .na {
                     linkLabelExamineChar(char)
+                }
+                
+                // Reset within footnote flag if we found a line that wasn't indented.
+                if withinFootnote {
+                    if nextLine.withinFootnote {
+                        // OK
+                    } else if char == " " && spaceCount > 0 && nextLine.indentLevels == 0 {
+                        // OK
+                    } else {
+                        withinFootnote = false
+                    }
                 }
             }
             
@@ -463,6 +483,11 @@ public class MkdownParser {
             } else {
                 nextLine.type = .linkDefExt
             }
+        } else if footnote.isValid && linkLabelPhase == .noteStart {
+            footnote.inputLine = nextLine.line
+            _ = addFootnote()
+            nextLine.type = .footnoteDef
+            withinFootnote = true
         } else if openHTMLblock {
             // Don't bother checking anything else
         } else if nextLine.headingUnderlining && nextLine.horizontalRule {
@@ -567,20 +592,30 @@ public class MkdownParser {
         }
         
         switch nextLine.type {
-        case .h1Underlines, .h2Underlines, .linkDef, .linkDefExt:
+        case .h1Underlines, .h2Underlines, .linkDef, .linkDefExt, .footnoteDef:
             break
         case .blank:
-            if lastLine.type == .blank { break }
-            lines.append(nextLine)
+            if withinFootnote && (footnote.lines.count == 0 || lastLine.type != .blank) {
+                footnote.lines.append(nextLine)
+            } else if lastLine.type == .blank {
+                break
+            } else {
+                lines.append(nextLine)
+            }
             lastLine = nextLine
         default:
-            lines.append(nextLine)
+            if withinFootnote {
+                footnote.lines.append(nextLine)
+            } else {
+                lines.append(nextLine)
+            }
             lastLine = nextLine
             lastNonBlankLine = nextLine
         }
 
     }
     
+    /// Figure out what to do with the next character found as part of a link label definition. 
     func linkLabelExamineChar(_ char: Character) {
          
          switch linkLabelPhase {
@@ -591,9 +626,19 @@ public class MkdownParser {
                  break
              } else if char == "]" {
                  linkLabelPhase = .rightBracket
+             } else if char == "^" && refLink.label.count == 0 && footnote.label.count == 0 {
+                linkLabelPhase = .caret
              } else {
                  refLink.label.append(char.lowercased())
              }
+         case .caret:
+            if char == "^" && footnote.label.count == 0 {
+                break
+            } else if char == "]" {
+                linkLabelPhase = .rightBracket
+            } else {
+                footnote.label.append(char.lowercased())
+            }
          case .rightBracket:
              if char == ":" {
                  linkLabelPhase = .colon
@@ -605,11 +650,16 @@ public class MkdownParser {
                  if char == "<" {
                      angleBracketsUsed = true
                      linkLabelPhase = .linkStart
+                 } else if footnote.label.count > 0 {
+                    footnote.text.append(char)
+                    linkLabelPhase = .noteStart
                  } else {
                      refLink.link.append(char)
                      linkLabelPhase = .linkStart
                  }
              }
+         case .noteStart:
+            footnote.text.append(char)
          case .linkStart:
              if angleBracketsUsed {
                  if char == ">" {
@@ -653,6 +703,7 @@ public class MkdownParser {
     // ===========================================================
     
     var linkDict: [String:RefLink] = [:]
+    var footnotes: [MkdownFootnote] = []
     var lines:    [MkdownLine] = []
     var tocFound = false
 
@@ -662,7 +713,14 @@ public class MkdownParser {
     //
     // ===========================================================
     
+    var mainLineIndex = 0
+    
     var tocLines: [MkdownLine] = []
+    var tocLineIndex = 0
+    
+    var footnoteLines: [MkdownLine] = []
+    var footnoteLinesGenerated = false
+    var footnoteLineIndex = 0
     
     var writer = Markedup()
     
@@ -695,7 +753,7 @@ public class MkdownParser {
             genTableOfContents()
         }
         
-        genHTML()
+        writeHTML()
     }
     
     /// Generate a table of contents when requested.
@@ -747,11 +805,8 @@ public class MkdownParser {
         }
     }
     
-    var mainLineIndex = 0
-    var tocLineIndex = 0
-    
-    /// Go through the Markdown lines, generating HTML.
-    func genHTML() {
+    /// Go through the Markdown lines, writing out HTML.
+    func writeHTML() {
         writer = Markedup()
         lastQuoteLevel = 0
         openBlocks = MkdownBlockStack()
@@ -789,7 +844,10 @@ public class MkdownParser {
                     } else if blockToOpen.isParagraph {
                         listItemIndex = 0
                     }
-                    openBlock(blockToOpen.tag, text: line.text)
+                    openBlock(blockToOpen.tag,
+                              footnoteItem: blockToOpen.footnoteItem,
+                              itemNumber: blockToOpen.itemNumber,
+                              text: line.text)
                     openBlocks.append(blockToOpen)
                     blockToOpenIndex += 1
                 }
@@ -799,7 +857,7 @@ public class MkdownParser {
                     let listBlock = openBlocks.blocks[listIndex]
                     if listBlock.isListTag && listBlock.listWithParagraphs {
                         let paraBlock = MkdownBlock("p")
-                        openBlock(paraBlock.tag, text: "")
+                        openBlock(paraBlock.tag, footnoteItem: false, itemNumber: 0, text: "")
                         openBlocks.append(paraBlock)
                     }
                 }
@@ -822,7 +880,7 @@ public class MkdownParser {
                 writer.writeLine(line.line)
             case .ordinaryText:
                 textToChunks(line)
-            case .orderedItem, .unorderedItem:
+            case .orderedItem, .unorderedItem, .footnoteItem:
                 textToChunks(line)
             case .followOn:
                 textToChunks(line)
@@ -830,15 +888,46 @@ public class MkdownParser {
                 break
             }
             
+            if line.endOfFootnote {
+                outputChunks()
+                let listItem = line.blocks.getListItem(atLevel: 0)
+                writeFootnoteReturn(number: listItem.itemNumber)
+            }
+            
             possibleLine = getNextLine()
             
         }
         closeBlocks(from: 0)
+        
+        if footnoteLines.count > 0 {
+            finishWritingFootnotes()
+        }
     }
     
-    /// Get the next markdown line to be processed, pulling from the table of contents array when appropriate.
+    /// Get the next markdown line to be processed, pulling from the table of contents array
+    /// and the footnote list when appropriate.
     func getNextLine() -> MkdownLine? {
-        guard mainLineIndex < lines.count else { return nil }
+        
+        if mainLineIndex >= lines.count {
+            if footnotes.isEmpty {
+                return nil
+            }
+            if !footnoteLinesGenerated {
+                closeBlocks(from: 0)
+                startWritingFootnotes()
+                genFootnotes()
+                footnoteLineIndex = 0
+                footnoteLinesGenerated = true
+            }
+            if footnoteLineIndex < footnoteLines.count {
+                nextLine = footnoteLines[footnoteLineIndex]
+                footnoteLineIndex += 1
+                return nextLine
+            } else {
+                return nil
+            }
+        }
+
         var nextLine = lines[mainLineIndex]
         if nextLine.type == .tableOfContents {
             if tocLineIndex < tocLines.count {
@@ -857,8 +946,89 @@ public class MkdownParser {
         return nextLine
     }
     
+    /// Write out HTML to start footnote section of the document.
+    func startWritingFootnotes() {
+        writer.startDiv(klass: "footnotes")
+        writer.horizontalRule()
+    }
+    
+    /// Write out HTML to end the footnote section of the document.
+    func finishWritingFootnotes() {
+        writer.finishDiv()
+    }
+    
+    /// Generate HTML to return from the footnote to the referencing text.
+    func writeFootnoteReturn(number: Int) {
+        writer.append(" ")
+        writer.openTag("a")
+        writer.addHref("#fnref:\(number)")
+        writer.addTitle("return to article")
+        writer.addClass("reversefootnote")
+        writer.closeTag()
+        writer.appendNumberedAttribute(number: 160)
+        writer.appendNumberedAttribute(number: 8617)
+        writer.finishLink()
+    }
+    
+    /// Generate footnotes.
+    func genFootnotes() {
+        
+        lastQuoteLevel = 0
+        openBlocks = MkdownBlockStack()
+        
+        footnoteLines = []
+
+        footnotes.sort()
+        lastLine = MkdownLine()
+        lastNonBlankLine = MkdownLine()
+        var footnoteIndex = 0
+        while footnoteIndex < footnotes.count {
+            let nextFootnote = footnotes[footnoteIndex]
+            nextFootnote.pruneTrailingBlankLines()
+            let footnoteLine = MkdownLine()
+            footnoteLine.makeFootnoteItem(previousLine: lastLine, previousNonBlankLine: lastNonBlankLine)
+            if nextFootnote.text.count > 0 {
+                footnoteLine.text = nextFootnote.text
+            } else {
+                footnoteLine.text = nextFootnote.label
+            }
+            footnoteLine.line = nextFootnote.inputLine
+            if nextFootnote.lines.isEmpty {
+                footnoteLine.endOfFootnote = true
+            }
+            addFootnoteLine(footnoteLine)
+            var lineCount = 0
+            for line in nextFootnote.lines {
+                lineCount += 1
+                _ = line.continueFootnote(line: footnoteLine)
+                if lineCount >= nextFootnote.lines.count {
+                    line.endOfFootnote = true
+                }
+                addFootnoteLine(line)
+            }
+            footnoteIndex += 1
+        }
+    }
+    
+    /// Add the next footnote line.
+    func addFootnoteLine(_ nextLine: MkdownLine) {
+        switch nextLine.type {
+        case .blank:
+            if lastLine.type == .blank {
+                break
+            } else {
+                footnoteLines.append(nextLine)
+            }
+            lastLine = nextLine
+        default:
+            footnoteLines.append(nextLine)
+            lastLine = nextLine
+            lastNonBlankLine = nextLine
+        }
+    }
+    
     /// Start writing an HTML block.
-    func openBlock(_ tag: String, text: String) {
+    func openBlock(_ tag: String, footnoteItem: Bool, itemNumber: Int, text: String) {
         outputUnwrittenChunks()
         switch tag {
         case "blockquote":
@@ -878,7 +1048,13 @@ public class MkdownParser {
         case "h6":
             writer.startHeading(level: 6, id: StringUtils.toCommonFileName(text))
         case "li":
-            writer.startListItem()
+            if footnoteItem {
+                writer.openTag("li")
+                writer.addID("fn:\(itemNumber)")
+                writer.closeTag()
+            } else {
+                writer.startListItem()
+            }
         case "ol":
             writer.startOrderedList(klass: nil)
         case "p":
@@ -896,13 +1072,14 @@ public class MkdownParser {
     func closeBlocks(from startToClose: Int) {
         var blockToClose = openBlocks.count - 1
         while blockToClose >= startToClose {
-            closeBlock(tag: openBlocks.blocks[blockToClose].tag)
+            let block = openBlocks.blocks[blockToClose]
+            closeBlock(tag: block.tag, footnoteItem: block.footnoteItem, itemNumber: block.itemNumber)
             openBlocks.removeLast()
             blockToClose -= 1
         }
     }
     
-    func closeBlock(tag: String) {
+    func closeBlock(tag: String, footnoteItem: Bool, itemNumber: Int) {
         outputChunks()
         switch tag {
         case "blockquote":
@@ -994,6 +1171,8 @@ public class MkdownParser {
                     addCharAsChunk(char: char, type: .colon, lastChar: lastChar, line: line)
                 case "[":
                     addCharAsChunk(char: char, type: .leftSquareBracket, lastChar: lastChar, line: line)
+                case "^":
+                    addCharAsChunk(char: char, type: .caret, lastChar: lastChar, line: line)
                 case "]":
                     addCharAsChunk(char: char, type: .rightSquareBracket, lastChar: lastChar, line: line)
                 case "(":
@@ -1519,13 +1698,14 @@ public class MkdownParser {
     /// If we have a left square bracket, scan for other punctuation related to a link.
     func scanForLinkElements(forChunkAt: Int) {
         
-        // See if this is an image, rather than a hyperlink.
+        // See if this is an image rather than a hyperlink.
         var exclamationMark: MkdownChunk?
         if forChunkAt > 0 && chunks[forChunkAt - 1].type == .exclamationMark {
             exclamationMark = chunks[forChunkAt - 1]
         }
         
         let leftBracket1 = chunks[forChunkAt]
+        var caret: MkdownChunk?
         var leftBracket2: MkdownChunk?
         var rightBracket1: MkdownChunk?
         var rightBracket2: MkdownChunk?
@@ -1540,12 +1720,18 @@ public class MkdownParser {
         var enclosedParens = 0
         
         var doubleBrackets = false
+        var footnoteRef = false
         var textBracketsClosed = false
         var linkLooking = true
         var index = forChunkAt + 1
         while linkLooking && index < chunks.count {
             let chunk = chunks[index]
             switch chunk.type {
+            case .caret:
+                if index == forChunkAt + 1 {
+                    caret = chunk
+                    footnoteRef = true
+                }
             case .leftSquareBracket:
                 if index == forChunkAt + 1 {
                     leftBracket2 = chunk
@@ -1562,7 +1748,11 @@ public class MkdownParser {
             case .rightSquareBracket:
                 if rightBracket1 == nil {
                     rightBracket1 = chunk
-                    if !doubleBrackets {
+                    if footnoteRef {
+                        textBracketsClosed = true
+                        closingTextBracketIndex = index
+                        linkLooking = false
+                    } else if !doubleBrackets {
                         textBracketsClosed = true
                         closingTextBracketIndex = index
                     }
@@ -1621,7 +1811,11 @@ public class MkdownParser {
         
         if linkLooking { return }
         
-        if doubleBrackets {
+        if footnoteRef {
+            leftBracket1.type = .startFootnoteLabel1
+            caret!.type = .startFootnoteLabel2
+            rightBracket1!.type = .endFootnoteLabel
+        } else if doubleBrackets {
             leftBracket1.type = .startWikiLink1
             leftBracket2!.type = .startWikiLink2
             rightBracket1!.type = .endWikiLink1
@@ -1663,11 +1857,14 @@ public class MkdownParser {
     
     var autoLink = ""
     var autoLinkSep: Character = " "
+    
+    var footnoteText = false
 
     /// Go through the chunks and write each one. 
     func writeChunks(chunksToWrite: [MkdownChunk]) {
         withinCodeSpan = false
         backslashed = false
+        footnote = MkdownFootnote()
         for chunkToWrite in chunksToWrite {
             if chunkToWrite.type == .startCode {
                 withinCodeSpan = true
@@ -1734,6 +1931,12 @@ public class MkdownParser {
 
         }
         
+        // If we're calling out a footnote, collect the text here.
+        if footnoteText && chunk.type != .endFootnoteLabel {
+            footnote.label.append(chunk.text)
+            return
+        }
+        
         // Figure out what to do with the next chunk of text,
         // depending on its type.
         if backslashed {
@@ -1769,6 +1972,23 @@ public class MkdownParser {
                 writer.finishStrong()
             case .endStrong2:
                 break
+            case .startFootnoteLabel1:
+                break
+            case .startFootnoteLabel2:
+                footnote = MkdownFootnote()
+                footnoteText = true
+            case .endFootnoteLabel:
+                footnote.inputLine = chunk.text
+                let assignedNumber = addFootnote()
+                writer.openTag("a")
+                writer.addHref("#fn:\(assignedNumber)")
+                writer.addID("fnref:\(assignedNumber)")
+                writer.addTitle("see footnote")
+                writer.addClass("footnote")
+                writer.closeTag()
+                writer.append("[\(assignedNumber)]")
+                writer.finishLink()
+                footnoteText = false
             case .startImage:
                 imageNotLink = true
             case .startLinkText:
@@ -1839,6 +2059,43 @@ public class MkdownParser {
                 writer.append(chunk.text)
             }
         }
+    }
+    
+    /// Increment for each new footnote reference found in text.
+    var footnoteNumber = 0
+    
+    /// Add another footnote to the list and return its assigned number.
+    func addFootnote() -> Int {
+        
+        var number = 0
+        if footnote.text.count == 0 {
+            footnoteNumber += 1
+            footnote.number = footnoteNumber
+        }
+        let searchFor = footnote.label.lowercased()
+        var i = 0
+        while i < footnotes.count {
+            if searchFor == footnotes[i].label {
+                if footnote.text.count > 0 {
+                    footnotes[i].text = footnote.text
+                    number = footnotes[i].number
+                } else if footnote.number > 0 {
+                    footnotes[i].number = footnote.number
+                    number = footnote.number
+                }
+                if footnote.inputLine.count > 0 && footnotes[i].inputLine.count == 0 {
+                    footnotes[i].inputLine = footnote.inputLine
+                }
+                footnote = footnotes[i]
+                break
+            }
+            i += 1
+        }
+        if i >= footnotes.count {
+            footnotes.append(footnote)
+            number = footnote.number
+        }
+        return number
     }
     
     func finishAutoLink() {

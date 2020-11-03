@@ -54,6 +54,18 @@ class MkdownBlockStack: Equatable {
         }
     }
     
+    /// Insert a new block at a fixed position, or add to the end. 
+    func insert(_ newBlock: MkdownBlock, at: Int) {
+        if at >= count {
+            blocks.append(newBlock)
+        } else {
+            blocks.insert(newBlock, at: at)
+        }
+        if newBlock.isListTag {
+            listPointers.append(at)
+        }
+    }
+    
     func removeLast() {
         if blocks.count > 0 {
             let lastBlock = blocks.removeLast()

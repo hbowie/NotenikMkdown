@@ -3,7 +3,7 @@
 //  Notenik
 //
 //  Created by Herb Bowie on 2/25/20.
-//  Copyright © 2020 Herb Bowie (https://powersurgepub.com)
+//  Copyright © 2020 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -16,6 +16,8 @@ class MkdownLine {
     var line = ""
     
     var type: MkdownLineType = .blank
+    var withinFootnote = false
+    var endOfFootnote = false
     
     var blocks = MkdownBlockStack()
     var quoteLevel = 0
@@ -87,7 +89,7 @@ class MkdownLine {
     /// the number.
     func preserveHeadingNumber(level: Int, headingNumbers: inout [Int]) {
         
-        guard type == .orderedItem else { return }
+        guard type == .orderedItem || type == .footnoteItem else { return }
         
         if headingNumbers[level] > 0 {
             headingNumber = headingNumbers[level] + 1
@@ -167,6 +169,16 @@ class MkdownLine {
                      previousNonBlankLine: previousNonBlankLine)
     }
     
+    /// Make this line a footnote item.
+    /// Make this line an ordered (numbered) list item.
+    func makeFootnoteItem(previousLine: MkdownLine, previousNonBlankLine: MkdownLine) {
+        
+        makeListItem(requestedType: .footnoteItem,
+                     previousLine: previousLine,
+                     previousNonBlankLine: previousNonBlankLine)
+        addParagraph()
+    }
+    
     /// Make this line a list item of the prescribed type.
     func makeListItem(requestedType: MkdownLineType,
                       previousLine: MkdownLine,
@@ -176,7 +188,7 @@ class MkdownLine {
         self.type = requestedType
         
         var listTag = "ul"
-        if requestedType == .orderedItem {
+        if requestedType == .orderedItem || requestedType == .footnoteItem {
             listTag = "ol"
         }
         
@@ -201,6 +213,9 @@ class MkdownLine {
         }
         
         let listItem = MkdownBlock("li")
+        if requestedType == .footnoteItem {
+            listItem.footnoteItem = true
+        }
         if continueList {
             if previousLine.type == .blank {
                 lastList.listWithParagraphs = true
@@ -212,6 +227,9 @@ class MkdownLine {
             listItem.itemNumber = lastListItem.itemNumber + 1
         } else {
             let newList = MkdownBlock(listTag)
+            if requestedType == .footnoteItem {
+                newList.footnoteItem = true
+            }
             blocks.append(newList)
             listItem.itemNumber = 1
         }
@@ -251,6 +269,24 @@ class MkdownLine {
                     && previousLine.blocks.listPointers.count <= listIndex {
                     previousLine.blocks.append(lastList)
                     previousLine.blocks.append(lastListItem)
+                }
+            }
+        }
+        return continueList
+    }
+    
+    func continueFootnote(line: MkdownLine) -> Bool {
+        var continueList = false
+        var lastList = MkdownBlock()
+        var lastListItem = MkdownBlock()
+        if line.blocks.listPointers.count > 0 {
+            lastList = line.blocks.getListBlock(atLevel: 0)
+            lastListItem = line.blocks.getListItem(atLevel: 0)
+            if lastList.isListTag {
+                continueList = true
+                self.blocks.insert(lastList, at: 0)
+                if lastListItem.isListItem {
+                    self.blocks.insert(lastListItem, at: 1)
                 }
             }
         }
@@ -297,6 +333,7 @@ class MkdownLine {
             print("Horizontal Rule")
         }
         print("Text: '\(text)'")
+        print("List Pointers Count: \(blocks.listPointers.count)")
         blocks.display()
     }
 }

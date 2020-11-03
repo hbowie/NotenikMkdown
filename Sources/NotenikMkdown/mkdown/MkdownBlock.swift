@@ -17,6 +17,7 @@ class MkdownBlock: CustomStringConvertible, Equatable, NSCopying {
     var tag = ""
     var itemNumber = 0
     var listWithParagraphs = false
+    var footnoteItem = false
     
     init() {
         
@@ -71,6 +72,8 @@ class MkdownBlock: CustomStringConvertible, Equatable, NSCopying {
     func copy(with zone: NSZone? = nil) -> Any {
         let copy = MkdownBlock(self.tag)
         copy.itemNumber = self.itemNumber
+        copy.listWithParagraphs = self.listWithParagraphs
+        copy.footnoteItem = self.footnoteItem
         return copy
     }
     
@@ -81,6 +84,9 @@ class MkdownBlock: CustomStringConvertible, Equatable, NSCopying {
         }
         if listWithParagraphs {
             displayLine.append(", List with Paragraphs")
+        }
+        if footnoteItem {
+            displayLine.append(", Footnote Item")
         }
         print(displayLine)
     }

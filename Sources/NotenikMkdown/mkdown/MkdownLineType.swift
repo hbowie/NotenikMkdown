@@ -20,13 +20,15 @@ enum MkdownLineType {
     case html
     case linkDef
     case linkDefExt
+    case footnoteDef
+    case footnoteItem
     case orderedItem
     case ordinaryText
     case tableOfContents
     case unorderedItem
     
     var isListItem: Bool {
-        return self == .orderedItem || self == .unorderedItem
+        return self == .orderedItem || self == .unorderedItem || self == .footnoteItem
     }
     
     var hasText: Bool {
@@ -34,7 +36,12 @@ enum MkdownLineType {
     }
     
     var textMayContinue: Bool {
-        return self == .orderedItem || self == .ordinaryText || self == .unorderedItem
+        switch self {
+        case .orderedItem, .ordinaryText, .unorderedItem, .footnoteItem:
+            return true
+        default:
+            return false
+        }
     }
 }
 
