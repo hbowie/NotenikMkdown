@@ -721,6 +721,7 @@ public class MkdownParser {
     var footnoteLines: [MkdownLine] = []
     var footnoteLinesGenerated = false
     var footnoteLineIndex = 0
+    var mainlineComplete = false
     
     var writer = Markedup()
     
@@ -909,11 +910,14 @@ public class MkdownParser {
     func getNextLine() -> MkdownLine? {
         
         if mainLineIndex >= lines.count {
+            if !mainlineComplete {
+                closeBlocks(from: 0)
+                mainlineComplete = true
+            }
             if footnotes.isEmpty {
                 return nil
             }
             if !footnoteLinesGenerated {
-                closeBlocks(from: 0)
                 startWritingFootnotes()
                 genFootnotes()
                 footnoteLineIndex = 0
