@@ -20,4 +20,6 @@ enum LinkLabelDefPhase {
     case titleStart
     case titleEnd
     case noteStart
+    case poundSign
+    case citationStart
 }

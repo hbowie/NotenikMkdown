@@ -49,6 +49,7 @@ enum MkdownChunkType {
     case leftSquareBracket
     case rightSquareBracket
     case caret
+    case poundSign
     
     case leftParen
     case rightParen
@@ -79,6 +80,12 @@ enum MkdownChunkType {
     case startFootnoteLabel1
     case startFootnoteLabel2
     case endFootnoteLabel
+    
+    case startCitationLabel1
+    case startCitationLabel2
+    case endCitationLabel
+    case startCitationLocator
+    case endCitationLocator
     
     case singleCurlyQuoteOpen
     case singleCurlyQuoteClose

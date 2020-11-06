@@ -3,7 +3,7 @@
 //  Notenik
 //
 //  Created by Herb Bowie on 3/6/20.
-//  Copyright © 2020 Herb Bowie (https://powersurgepub.com)
+//  Copyright © 2020 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -18,6 +18,8 @@ class MkdownBlock: CustomStringConvertible, Equatable, NSCopying {
     var itemNumber = 0
     var listWithParagraphs = false
     var footnoteItem = false
+    var citationItem = false
+    var notCited = false
     
     init() {
         
@@ -74,6 +76,8 @@ class MkdownBlock: CustomStringConvertible, Equatable, NSCopying {
         copy.itemNumber = self.itemNumber
         copy.listWithParagraphs = self.listWithParagraphs
         copy.footnoteItem = self.footnoteItem
+        copy.citationItem = self.citationItem
+        copy.notCited = self.notCited
         return copy
     }
     
@@ -87,6 +91,12 @@ class MkdownBlock: CustomStringConvertible, Equatable, NSCopying {
         }
         if footnoteItem {
             displayLine.append(", Footnote Item")
+        }
+        if citationItem {
+            displayLine.append(", Citation Item")
+        }
+        if notCited {
+            displayLine.append(", Not Cited")
         }
         print(displayLine)
     }

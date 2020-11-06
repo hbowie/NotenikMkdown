@@ -11,6 +11,8 @@
 
 enum MkdownLineType {
     case blank
+    case citationDef
+    case citationItem
     case code
     case followOn
     case h1Underlines
@@ -27,8 +29,12 @@ enum MkdownLineType {
     case tableOfContents
     case unorderedItem
     
+    var isNumberedItem: Bool {
+        return self == .orderedItem || self == .footnoteItem || self == .citationItem
+    }
+    
     var isListItem: Bool {
-        return self == .orderedItem || self == .unorderedItem || self == .footnoteItem
+        return isNumberedItem || self == .unorderedItem
     }
     
     var hasText: Bool {
@@ -37,12 +43,10 @@ enum MkdownLineType {
     
     var textMayContinue: Bool {
         switch self {
-        case .orderedItem, .ordinaryText, .unorderedItem, .footnoteItem:
+        case .orderedItem, .ordinaryText, .unorderedItem, .footnoteItem, .citationItem:
             return true
         default:
             return false
         }
     }
 }
-
-

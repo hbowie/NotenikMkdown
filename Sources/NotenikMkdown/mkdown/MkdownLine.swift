@@ -16,8 +16,12 @@ class MkdownLine {
     var line = ""
     
     var type: MkdownLineType = .blank
+    
     var withinFootnote = false
     var endOfFootnote = false
+    
+    var withinCitation = false
+    var endOfCitation = false
     
     var blocks = MkdownBlockStack()
     var quoteLevel = 0
@@ -89,7 +93,7 @@ class MkdownLine {
     /// the number.
     func preserveHeadingNumber(level: Int, headingNumbers: inout [Int]) {
         
-        guard type == .orderedItem || type == .footnoteItem else { return }
+        guard type.isNumberedItem else { return }
         
         if headingNumbers[level] > 0 {
             headingNumber = headingNumbers[level] + 1
@@ -157,23 +161,32 @@ class MkdownLine {
     /// Make this line an unordered (bulleted) list item.
     func makeUnordered(previousLine: MkdownLine, previousNonBlankLine: MkdownLine) {
         makeListItem(requestedType: .unorderedItem,
+                     cited: false,
                      previousLine: previousLine,
                      previousNonBlankLine: previousNonBlankLine)
     }
     
     /// Make this line an ordered (numbered) list item.
     func makeOrdered(previousLine: MkdownLine, previousNonBlankLine: MkdownLine) {
-        
         makeListItem(requestedType: .orderedItem,
+                     cited: false,
                      previousLine: previousLine,
                      previousNonBlankLine: previousNonBlankLine)
     }
     
     /// Make this line a footnote item.
-    /// Make this line an ordered (numbered) list item.
     func makeFootnoteItem(previousLine: MkdownLine, previousNonBlankLine: MkdownLine) {
-        
         makeListItem(requestedType: .footnoteItem,
+                     cited: false,
+                     previousLine: previousLine,
+                     previousNonBlankLine: previousNonBlankLine)
+        addParagraph()
+    }
+    
+    /// Make this line a citation item.
+    func makeCitationItem(cited: Bool, previousLine: MkdownLine, previousNonBlankLine: MkdownLine) {
+        makeListItem(requestedType: .citationItem,
+                     cited: cited,
                      previousLine: previousLine,
                      previousNonBlankLine: previousNonBlankLine)
         addParagraph()
@@ -181,6 +194,7 @@ class MkdownLine {
     
     /// Make this line a list item of the prescribed type.
     func makeListItem(requestedType: MkdownLineType,
+                      cited: Bool,
                       previousLine: MkdownLine,
                       previousNonBlankLine: MkdownLine) {
         
@@ -188,7 +202,7 @@ class MkdownLine {
         self.type = requestedType
         
         var listTag = "ul"
-        if requestedType == .orderedItem || requestedType == .footnoteItem {
+        if requestedType.isNumberedItem {
             listTag = "ol"
         }
         
@@ -215,6 +229,11 @@ class MkdownLine {
         let listItem = MkdownBlock("li")
         if requestedType == .footnoteItem {
             listItem.footnoteItem = true
+        } else if requestedType == .citationItem {
+            listItem.citationItem = true
+            if !cited {
+                listItem.notCited = true
+            }
         }
         if continueList {
             if previousLine.type == .blank {
@@ -229,6 +248,8 @@ class MkdownLine {
             let newList = MkdownBlock(listTag)
             if requestedType == .footnoteItem {
                 newList.footnoteItem = true
+            } else if requestedType == .citationItem {
+                newList.citationItem = true
             }
             blocks.append(newList)
             listItem.itemNumber = 1
@@ -275,7 +296,7 @@ class MkdownLine {
         return continueList
     }
     
-    func continueFootnote(line: MkdownLine) -> Bool {
+    func continueFootnoteOrCitation(line: MkdownLine) -> Bool {
         var continueList = false
         var lastList = MkdownBlock()
         var lastListItem = MkdownBlock()

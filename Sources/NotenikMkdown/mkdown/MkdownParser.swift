@@ -81,8 +81,12 @@ public class MkdownParser {
     var titleEndChar: Character = " "
     
     var refLink = RefLink()
+    
     var footnote = MkdownFootnote()
     var withinFootnote = false
+    
+    var citation = MkdownCitation()
+    var withinCitation = false
     
     var headingNumbers = [0, 0, 0, 0, 0, 0, 0]
     
@@ -185,6 +189,7 @@ public class MkdownParser {
     func mdToLines() {
         
         withinFootnote = false
+        withinCitation = false
         nextIndex = mkdown.startIndex
         beginLine()
         
@@ -312,6 +317,8 @@ public class MkdownParser {
                     if char == "\t" || char == " " {
                         if nextLine.indentLevels == 0 && withinFootnote {
                             nextLine.withinFootnote = true
+                        } else if nextLine.indentLevels == 0 && withinCitation {
+                            nextLine.withinCitation = true
                         } else {
                             nextLine.indentLevels += 1
                             let continuedBlock = nextLine.continueBlock(previousLine: lastLine,
@@ -339,7 +346,7 @@ public class MkdownParser {
                         continue
                     } else if char.isNumber {
                         if following &&
-                            (followingType != .orderedItem && followingType != .footnoteItem) {
+                            (!followingType.isNumberedItem) {
                             phase = .text
                         } else {
                             leadingNumber = true
@@ -350,6 +357,7 @@ public class MkdownParser {
                         linkLabelPhase = .leftBracket
                         refLink = RefLink()
                         footnote = MkdownFootnote()
+                        citation = MkdownCitation()
                         phase = .text
                     } else {
                         phase = .text
@@ -372,7 +380,7 @@ public class MkdownParser {
                     switch lastLine.type {
                     case .blank:
                         nextLine.makeOrdinary()
-                    case .ordinaryText, .followOn, .orderedItem, .unorderedItem, .footnoteItem:
+                    case .ordinaryText, .followOn, .orderedItem, .unorderedItem, .footnoteItem, .citationItem:
                         nextLine.makeFollowOn(previousLine: lastLine)
                     default:
                         nextLine.makeOrdinary()
@@ -415,6 +423,17 @@ public class MkdownParser {
                         // OK
                     } else {
                         withinFootnote = false
+                    }
+                }
+                
+                // Reset within citation flag if we found a line that wasn't indented.
+                if withinCitation {
+                    if nextLine.withinCitation {
+                        // OK
+                    } else if char == " " && spaceCount > 0 && nextLine.indentLevels == 0 {
+                        // OK
+                    } else {
+                        withinCitation = false
                     }
                 }
             }
@@ -488,6 +507,11 @@ public class MkdownParser {
             _ = addFootnote()
             nextLine.type = .footnoteDef
             withinFootnote = true
+        } else if citation.isValid && linkLabelPhase == .citationStart {
+            citation.inputLine = nextLine.line
+            _ = addCitation()
+            nextLine.type = .citationDef
+            withinCitation = true
         } else if openHTMLblock {
             // Don't bother checking anything else
         } else if nextLine.headingUnderlining && nextLine.horizontalRule {
@@ -592,11 +616,13 @@ public class MkdownParser {
         }
         
         switch nextLine.type {
-        case .h1Underlines, .h2Underlines, .linkDef, .linkDefExt, .footnoteDef:
+        case .h1Underlines, .h2Underlines, .linkDef, .linkDefExt, .footnoteDef, .citationDef:
             break
         case .blank:
             if withinFootnote && (footnote.lines.count == 0 || lastLine.type != .blank) {
                 footnote.lines.append(nextLine)
+            } else if withinCitation && (citation.lines.count == 0 && lastLine.type != .blank) {
+                citation.lines.append(nextLine)
             } else if lastLine.type == .blank {
                 break
             } else {
@@ -606,6 +632,8 @@ public class MkdownParser {
         default:
             if withinFootnote {
                 footnote.lines.append(nextLine)
+            } else if withinCitation {
+                citation.lines.append(nextLine)
             } else {
                 lines.append(nextLine)
             }
@@ -628,6 +656,8 @@ public class MkdownParser {
                  linkLabelPhase = .rightBracket
              } else if char == "^" && refLink.label.count == 0 && footnote.label.count == 0 {
                 linkLabelPhase = .caret
+             } else if char == "#" && refLink.label.count == 0 && citation.label.count == 0 {
+                linkLabelPhase = .poundSign
              } else {
                  refLink.label.append(char.lowercased())
              }
@@ -638,6 +668,14 @@ public class MkdownParser {
                 linkLabelPhase = .rightBracket
             } else {
                 footnote.label.append(char.lowercased())
+            }
+         case .poundSign:
+            if char == "#" && citation.label.count == 0 {
+                break
+            } else if char == "]" {
+                linkLabelPhase = .rightBracket
+            } else {
+                citation.label.append(char)
             }
          case .rightBracket:
              if char == ":" {
@@ -653,6 +691,9 @@ public class MkdownParser {
                  } else if footnote.label.count > 0 {
                     footnote.text.append(char)
                     linkLabelPhase = .noteStart
+                 } else if citation.label.count > 0 {
+                    citation.text.append(char)
+                    linkLabelPhase = .citationStart
                  } else {
                      refLink.link.append(char)
                      linkLabelPhase = .linkStart
@@ -660,6 +701,8 @@ public class MkdownParser {
              }
          case .noteStart:
             footnote.text.append(char)
+         case .citationStart:
+            citation.text.append(char)
          case .linkStart:
              if angleBracketsUsed {
                  if char == ">" {
@@ -704,6 +747,7 @@ public class MkdownParser {
     
     var linkDict: [String:RefLink] = [:]
     var footnotes: [MkdownFootnote] = []
+    var citations: [MkdownCitation] = []
     var lines:    [MkdownLine] = []
     var tocFound = false
 
@@ -721,6 +765,11 @@ public class MkdownParser {
     var footnoteLines: [MkdownLine] = []
     var footnoteLinesGenerated = false
     var footnoteLineIndex = 0
+    
+    var citationLines: [MkdownLine] = []
+    var citationLinesGenerated = false
+    var citationLineIndex = 0
+    
     var mainlineComplete = false
     
     var writer = Markedup()
@@ -847,6 +896,7 @@ public class MkdownParser {
                     }
                     openBlock(blockToOpen.tag,
                               footnoteItem: blockToOpen.footnoteItem,
+                              citationItem: blockToOpen.citationItem,
                               itemNumber: blockToOpen.itemNumber,
                               text: line.text)
                     openBlocks.append(blockToOpen)
@@ -858,7 +908,7 @@ public class MkdownParser {
                     let listBlock = openBlocks.blocks[listIndex]
                     if listBlock.isListTag && listBlock.listWithParagraphs {
                         let paraBlock = MkdownBlock("p")
-                        openBlock(paraBlock.tag, footnoteItem: false, itemNumber: 0, text: "")
+                        openBlock(paraBlock.tag, footnoteItem: false, citationItem: false, itemNumber: 0, text: "")
                         openBlocks.append(paraBlock)
                     }
                 }
@@ -881,7 +931,7 @@ public class MkdownParser {
                 writer.writeLine(line.line)
             case .ordinaryText:
                 textToChunks(line)
-            case .orderedItem, .unorderedItem, .footnoteItem:
+            case .orderedItem, .unorderedItem, .footnoteItem, .citationItem:
                 textToChunks(line)
             case .followOn:
                 textToChunks(line)
@@ -893,6 +943,14 @@ public class MkdownParser {
                 outputChunks()
                 let listItem = line.blocks.getListItem(atLevel: 0)
                 writeFootnoteReturn(number: listItem.itemNumber)
+            } else if line.endOfCitation {
+                outputChunks()
+                let listItem = line.blocks.getListItem(atLevel: 0)
+                if listItem.notCited {
+                    // skip the return
+                } else {
+                    writeCitationReturn(number: listItem.itemNumber)
+                }
             }
             
             possibleLine = getNextLine()
@@ -902,6 +960,9 @@ public class MkdownParser {
         
         if footnoteLines.count > 0 {
             finishWritingFootnotes()
+        }
+        if citationLines.count > 0 {
+            finishWritingCitations()
         }
     }
     
@@ -914,10 +975,7 @@ public class MkdownParser {
                 closeBlocks(from: 0)
                 mainlineComplete = true
             }
-            if footnotes.isEmpty {
-                return nil
-            }
-            if !footnoteLinesGenerated {
+            if footnotes.count > 0 && !footnoteLinesGenerated {
                 startWritingFootnotes()
                 genFootnotes()
                 footnoteLineIndex = 0
@@ -927,9 +985,20 @@ public class MkdownParser {
                 nextLine = footnoteLines[footnoteLineIndex]
                 footnoteLineIndex += 1
                 return nextLine
-            } else {
-                return nil
             }
+            if citations.count > 0 && !citationLinesGenerated {
+                closeBlocks(from: 0)
+                startWritingCitations()
+                genCitations()
+                citationLineIndex = 0
+                citationLinesGenerated = true
+            }
+            if citationLineIndex < citationLines.count {
+                nextLine = citationLines[citationLineIndex]
+                citationLineIndex += 1
+                return nextLine
+            }
+            return nil
         }
 
         var nextLine = lines[mainLineIndex]
@@ -961,6 +1030,17 @@ public class MkdownParser {
         writer.finishDiv()
     }
     
+    /// Write out HTML to start citations section of the document.
+    func startWritingCitations() {
+        writer.startDiv(klass: "citations")
+        writer.horizontalRule()
+    }
+    
+    /// Write out HTML to end the citations section of the document.
+    func finishWritingCitations() {
+        writer.finishDiv()
+    }
+    
     /// Generate HTML to return from the footnote to the referencing text.
     func writeFootnoteReturn(number: Int) {
         writer.append(" ")
@@ -968,6 +1048,19 @@ public class MkdownParser {
         writer.addHref("#fnref:\(number)")
         writer.addTitle("return to article")
         writer.addClass("reversefootnote")
+        writer.closeTag()
+        writer.appendNumberedAttribute(number: 160)
+        writer.appendNumberedAttribute(number: 8617)
+        writer.finishLink()
+    }
+    
+    /// Generate HTML to return from the citation to the referencing text.
+    func writeCitationReturn(number: Int) {
+        writer.append(" ")
+        writer.openTag("a")
+        writer.addHref("#cnref:\(number)")
+        writer.addTitle("return to body")
+        writer.addClass("reversecitation")
         writer.closeTag()
         writer.appendNumberedAttribute(number: 160)
         writer.appendNumberedAttribute(number: 8617)
@@ -1004,7 +1097,7 @@ public class MkdownParser {
             var lineCount = 0
             for line in nextFootnote.lines {
                 lineCount += 1
-                _ = line.continueFootnote(line: footnoteLine)
+                _ = line.continueFootnoteOrCitation(line: footnoteLine)
                 if lineCount >= nextFootnote.lines.count {
                     line.endOfFootnote = true
                 }
@@ -1031,8 +1124,65 @@ public class MkdownParser {
         }
     }
     
+    /// Generate citations.
+    func genCitations() {
+        
+        lastQuoteLevel = 0
+        openBlocks = MkdownBlockStack()
+        
+        citationLines = []
+
+        citations.sort()
+        lastLine = MkdownLine()
+        lastNonBlankLine = MkdownLine()
+        var citationIndex = 0
+        while citationIndex < citations.count {
+            let nextCitation = citations[citationIndex]
+            nextCitation.pruneTrailingBlankLines()
+            let citationLine = MkdownLine()
+            citationLine.makeCitationItem(cited: nextCitation.cited, previousLine: lastLine, previousNonBlankLine: lastNonBlankLine)
+            if nextCitation.text.count > 0 {
+                citationLine.text = nextCitation.text
+            } else {
+                citationLine.text = nextCitation.label
+            }
+            citationLine.line = nextCitation.inputLine
+            if nextCitation.lines.isEmpty {
+                citationLine.endOfCitation = true
+            }
+            addCitationLine(citationLine)
+            var lineCount = 0
+            for line in nextCitation.lines {
+                lineCount += 1
+                _ = line.continueFootnoteOrCitation(line: citationLine)
+                if lineCount >= nextCitation.lines.count {
+                    line.endOfCitation = true
+                }
+                addCitationLine(line)
+            }
+            citationIndex += 1
+        }
+    }
+    
+    /// Add the next citation line.
+    func addCitationLine(_ nextLine: MkdownLine) {
+        switch nextLine.type {
+        case .blank:
+            if lastLine.type == .blank {
+                break
+            } else {
+                citationLines.append(nextLine)
+            }
+            lastLine = nextLine
+        default:
+            citationLines.append(nextLine)
+            lastLine = nextLine
+            lastNonBlankLine = nextLine
+        }
+    }
+    
     /// Start writing an HTML block.
-    func openBlock(_ tag: String, footnoteItem: Bool, itemNumber: Int, text: String) {
+    func openBlock(_ tag: String, footnoteItem: Bool, citationItem: Bool, itemNumber: Int, text: String) {
         outputUnwrittenChunks()
         switch tag {
         case "blockquote":
@@ -1056,6 +1206,10 @@ public class MkdownParser {
                 writer.openTag("li")
                 writer.addID("fn:\(itemNumber)")
                 writer.closeTag()
+            } else if citationItem {
+                writer.openTag("li")
+                writer.addID("cn:\(itemNumber)")
+                writer.closeTag()
             } else {
                 writer.startListItem()
             }
@@ -1077,13 +1231,13 @@ public class MkdownParser {
         var blockToClose = openBlocks.count - 1
         while blockToClose >= startToClose {
             let block = openBlocks.blocks[blockToClose]
-            closeBlock(tag: block.tag, footnoteItem: block.footnoteItem, itemNumber: block.itemNumber)
+            closeBlock(tag: block.tag, footnoteItem: block.footnoteItem, citationItem: block.citationItem, itemNumber: block.itemNumber)
             openBlocks.removeLast()
             blockToClose -= 1
         }
     }
     
-    func closeBlock(tag: String, footnoteItem: Bool, itemNumber: Int) {
+    func closeBlock(tag: String, footnoteItem: Bool, citationItem: Bool, itemNumber: Int) {
         outputChunks()
         switch tag {
         case "blockquote":
@@ -1177,6 +1331,8 @@ public class MkdownParser {
                     addCharAsChunk(char: char, type: .leftSquareBracket, lastChar: lastChar, line: line)
                 case "^":
                     addCharAsChunk(char: char, type: .caret, lastChar: lastChar, line: line)
+                case "#":
+                    addCharAsChunk(char: char, type: .poundSign, lastChar: lastChar, line: line)
                 case "]":
                     addCharAsChunk(char: char, type: .rightSquareBracket, lastChar: lastChar, line: line)
                 case "(":
@@ -1710,11 +1866,13 @@ public class MkdownParser {
         
         let leftBracket1 = chunks[forChunkAt]
         var caret: MkdownChunk?
+        var poundSign: MkdownChunk?
         var leftBracket2: MkdownChunk?
         var rightBracket1: MkdownChunk?
         var rightBracket2: MkdownChunk?
         var closingTextBracketIndex = -1
         var leftLabelBracket: MkdownChunk?
+        var leftLabelBracketIndex = -1
         var rightLabelBracket: MkdownChunk?
         var leftParen: MkdownChunk?
         var leftQuote: MkdownChunk?
@@ -1725,6 +1883,7 @@ public class MkdownParser {
         
         var doubleBrackets = false
         var footnoteRef = false
+        var citationRef = false
         var textBracketsClosed = false
         var linkLooking = true
         var index = forChunkAt + 1
@@ -1736,6 +1895,14 @@ public class MkdownParser {
                     caret = chunk
                     footnoteRef = true
                 }
+            case .poundSign:
+                if index == forChunkAt + 1 {
+                    poundSign = chunk
+                    citationRef = true
+                } else if (index == leftLabelBracketIndex + 1) {
+                    poundSign = chunk
+                    citationRef = true
+                }
             case .leftSquareBracket:
                 if index == forChunkAt + 1 {
                     leftBracket2 = chunk
@@ -1746,6 +1913,7 @@ public class MkdownParser {
                         || (index == closingTextBracketIndex + 2
                             && lastChunk.text == " "))) {
                     leftLabelBracket = chunk
+                    leftLabelBracketIndex = index
                 } else {
                     return
                 }
@@ -1753,6 +1921,10 @@ public class MkdownParser {
                 if rightBracket1 == nil {
                     rightBracket1 = chunk
                     if footnoteRef {
+                        textBracketsClosed = true
+                        closingTextBracketIndex = index
+                        linkLooking = false
+                    } else if citationRef {
                         textBracketsClosed = true
                         closingTextBracketIndex = index
                         linkLooking = false
@@ -1780,13 +1952,17 @@ public class MkdownParser {
                     }
                 }
             case .leftParen:
-                if textBracketsClosed && leftParen == nil {
+                if citationRef {
+                    // ignore parens
+                } else if textBracketsClosed && leftParen == nil {
                     leftParen = chunk
                 } else {
                     enclosedParens += 1
                 }
             case .rightParen:
-                if leftParen == nil {
+                if citationRef {
+                    // ignore parens
+                } else if leftParen == nil {
                     return
                 } else if enclosedParens > 0 {
                     enclosedParens -= 1
@@ -1795,13 +1971,17 @@ public class MkdownParser {
                     linkLooking = false
                 }
             case .singleQuote:
-                if leftQuote == nil && textBracketsClosed && leftParen != nil {
+                if citationRef {
+                    // don't care about quote chars
+                } else if leftQuote == nil && textBracketsClosed && leftParen != nil {
                     leftQuote = chunk
                 } else if leftQuote != nil && leftQuote!.type == chunk.type {
                     rightQuote = chunk
                 }
             case .doubleQuote:
-                if leftQuote == nil && textBracketsClosed && leftParen != nil {
+                if citationRef {
+                    // don't care about quote chars
+                } else if leftQuote == nil && textBracketsClosed && leftParen != nil {
                     leftQuote = chunk
                 } else if leftQuote != nil && leftQuote!.type == chunk.type {
                     rightQuote = chunk
@@ -1819,6 +1999,18 @@ public class MkdownParser {
             leftBracket1.type = .startFootnoteLabel1
             caret!.type = .startFootnoteLabel2
             rightBracket1!.type = .endFootnoteLabel
+        } else if citationRef {
+            if rightLabelBracket == nil {
+                leftBracket1.type = .startCitationLabel1
+                poundSign!.type = .startCitationLabel2
+                rightBracket1!.type = .endCitationLabel
+            } else {
+                leftBracket1.type = .startCitationLocator
+                rightBracket1!.type = .endCitationLocator
+                leftLabelBracket!.type = .startCitationLabel1
+                poundSign!.type = .startCitationLabel2
+                rightLabelBracket!.type = .endCitationLabel
+            }
         } else if doubleBrackets {
             leftBracket1.type = .startWikiLink1
             leftBracket2!.type = .startWikiLink2
@@ -1863,12 +2055,16 @@ public class MkdownParser {
     var autoLinkSep: Character = " "
     
     var footnoteText = false
+    var citationText = false
+    var citationLocatorSpan = false
+    var citationLocator = ""
 
     /// Go through the chunks and write each one. 
     func writeChunks(chunksToWrite: [MkdownChunk]) {
         withinCodeSpan = false
         backslashed = false
         footnote = MkdownFootnote()
+        citation = MkdownCitation()
         for chunkToWrite in chunksToWrite {
             if chunkToWrite.type == .startCode {
                 withinCodeSpan = true
@@ -1941,6 +2137,17 @@ public class MkdownParser {
             return
         }
         
+        // If we're calling out a citation, collect the text here.
+        if citationText && chunk.type != .endCitationLabel {
+            citation.label.append(chunk.text)
+            return
+        }
+        
+        if citationLocatorSpan && chunk.type != .endCitationLocator {
+            citationLocator.append(chunk.text)
+            return
+        }
+        
         // Figure out what to do with the next chunk of text,
         // depending on its type.
         if backslashed {
@@ -1993,6 +2200,40 @@ public class MkdownParser {
                 writer.append("[\(assignedNumber)]")
                 writer.finishLink()
                 footnoteText = false
+            case .startCitationLocator:
+                citationLocator = ""
+                citationLocatorSpan = true
+            case .endCitationLocator:
+                citationLocatorSpan = false
+            case .startCitationLabel1:
+                break
+            case .startCitationLabel2:
+                citation = MkdownCitation()
+                citationText = true
+            case .endCitationLabel:
+                citation.inputLine = chunk.text
+                let commonLocator = StringUtils.toCommon(citationLocator)
+                if commonLocator == "notcited" || commonLocator == "nocite" {
+                    citation.cited = false
+                }
+                let assignedNumber = addCitation()
+                if citation.cited {
+                    writer.openTag("a")
+                    writer.addHref("#cn:\(assignedNumber)")
+                    writer.addID("cnref:\(assignedNumber)")
+                    writer.addTitle("see citation")
+                    writer.addClass("citation")
+                    writer.closeTag()
+                    writer.append("(")
+                    if commonLocator.count > 0 {
+                        writer.append("\(citationLocator), ")
+                    }
+                    writer.append("\(assignedNumber))")
+                    writer.finishLink()
+                }
+                citationText = false
+                citationLocator = ""
+                citationLocatorSpan = false
             case .startImage:
                 imageNotLink = true
             case .startLinkText:
@@ -2068,6 +2309,9 @@ public class MkdownParser {
     /// Increment for each new footnote reference found in text.
     var footnoteNumber = 0
     
+    /// Increment for each new citation reference found in text.
+    var citationNumber = 0
+    
     /// Add another footnote to the list and return its assigned number.
     func addFootnote() -> Int {
         
@@ -2098,6 +2342,51 @@ public class MkdownParser {
         if i >= footnotes.count {
             footnotes.append(footnote)
             number = footnote.number
+        }
+        return number
+    }
+    
+    /// Add another citation to the list and return its assigned number.
+    func addCitation() -> Int {
+        
+        var number = 0
+        let searchFor = citation.label.lowercased()
+        var i = 0
+        while i < citations.count {
+            if searchFor == citations[i].label.lowercased() {
+                if citation.number == 0 && citations[i].number == 0 {
+                    citationNumber += 1
+                    number = citationNumber
+                    citations[i].number = number
+                    citation.number = number
+                } else if citations[i].number > 0 {
+                    number = citations[i].number
+                    citation.number = number
+                } else {
+                    number = citation.number
+                    citations[i].number = number
+                }
+                if citation.text.count > 0 {
+                    citations[i].text = citation.text
+                }
+                if citation.inputLine.count > 0 && citations[i].inputLine.count == 0 {
+                    citations[i].inputLine = citation.inputLine
+                }
+                if !citation.cited {
+                    citations[i].cited = citation.cited
+                }
+                citation = citations[i]
+                break
+            }
+            i += 1
+        }
+        if i >= citations.count {
+            if citation.number == 0 && citation.text.count == 0 {
+                citationNumber += 1
+                citation.number = citationNumber
+            }
+            citations.append(citation)
+            number = citation.number
         }
         return number
     }
