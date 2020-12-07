@@ -1564,6 +1564,7 @@ public class MkdownParser {
         }
     }
     
+    /// Scan for quotations marks.
     func scanForQuotes(forChunkAt: Int) {
         
         let firstChunk = chunks[forChunkAt]
@@ -1857,7 +1858,6 @@ public class MkdownParser {
     
     /// If we have a left square bracket, scan for other punctuation related to a link.
     func scanForLinkElements(forChunkAt: Int) {
-        
         // See if this is an image rather than a hyperlink.
         var exclamationMark: MkdownChunk?
         if forChunkAt > 0 && chunks[forChunkAt - 1].type == .exclamationMark {
@@ -1962,10 +1962,10 @@ public class MkdownParser {
             case .rightParen:
                 if citationRef {
                     // ignore parens
-                } else if leftParen == nil {
-                    return
                 } else if enclosedParens > 0 {
                     enclosedParens -= 1
+                } else if leftParen == nil {
+                    return
                 } else {
                     rightParen = chunk
                     linkLooking = false
