@@ -1630,7 +1630,14 @@ public class MkdownParser {
         }
         guard sep == ":" || sep == "@" else { return false }
         let part1 = chunks[forChunkAt + 1].text
-        if sep == ":" && part1 != "http" && part1 != "https" { return false }
+        if sep == ":" {
+            switch part1 {
+            case "http", "https", "file":
+                break
+            default:
+                return false
+            }
+        }
         chunks[forChunkAt].type = .autoLinkStart
         chunks[forChunkAt + 4].type = .autoLinkEnd
         return true
