@@ -1617,30 +1617,37 @@ public class MkdownParser {
     }
     
     func scanForAutoLink(forChunkAt: Int) -> Bool {
-        guard forChunkAt + 4 < chunks.count else { return false }
-        guard chunks[forChunkAt + 4].type == .rightAngleBracket else { return false }
-        var sep: Character = " "
-        switch chunks[forChunkAt + 2].type {
-        case .atSign:
-            sep = "@"
-        case .colon:
-            sep = ":"
-        default:
-            sep = " "
-        }
-        guard sep == ":" || sep == "@" else { return false }
-        let part1 = chunks[forChunkAt + 1].text
-        if sep == ":" {
-            switch part1 {
-            case "http", "https", "file":
-                break
+        var next = forChunkAt + 1
+        var atSignFound = false
+        var colonChunkIndex = -1
+        var colonAndSlashesFound = false
+        while next < chunks.count {
+            let nextChunk = chunks[next]
+            switch nextChunk.type {
+            case .atSign:
+                atSignFound = true
+            case .colon:
+                colonChunkIndex = next
+            case .rightAngleBracket:
+                if atSignFound || colonAndSlashesFound {
+                    chunks[forChunkAt].type = .autoLinkStart
+                    nextChunk.type = .autoLinkEnd
+                    return true
+                } else {
+                    return false
+                }
+            case .plaintext:
+                if nextChunk.text.contains(" ") { return false }
+                if colonChunkIndex >= 0 && next == colonChunkIndex + 1 && nextChunk.text.starts(with: "//") {
+                    colonAndSlashesFound = true
+                }
             default:
-                return false
+                break
             }
+            next += 1
         }
-        chunks[forChunkAt].type = .autoLinkStart
-        chunks[forChunkAt + 4].type = .autoLinkEnd
-        return true
+        
+        return false
     }
     
     func scanForInlineTag(forChunkAt: Int) -> Bool {
