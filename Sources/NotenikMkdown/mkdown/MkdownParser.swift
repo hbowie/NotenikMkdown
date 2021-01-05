@@ -197,6 +197,22 @@ public class MkdownParser {
              
             // Get the next character and adjust indices
             let char = mkdown[nextIndex]
+            /* Following code can be uncommented for debugging.
+            print("char = \(char)")
+            print("  - phase = \(phase)")
+            print("  - repeating char = \(nextLine.repeatingChar)")
+            print("  - repeat count = \(nextLine.repeatCount)")
+            print("  - only repeating? \(nextLine.onlyRepeating)")
+            print("  - only repeating and spaces? \(nextLine.onlyRepeatingAndSpaces)")
+            print("  - possible tag pending? \(possibleTagPending)")
+            print("  - open HTML block? \(openHTMLblock)")
+            print("  - leading number? \(leadingNumber)")
+            print("  - leading number and period? \(leadingNumberAndPeriod)")
+            print("  - leading number, period and space? \(leadingNumberPeriodAndSpace)")
+            print("  - leading bullet? \(leadingBullet)")
+            print("  - following? \(following)")
+            print("  - following type = \(followingType)")
+             */
             let lastIndex = nextIndex
             nextIndex = mkdown.index(after: nextIndex)
             lineIndex += 1
@@ -221,6 +237,7 @@ public class MkdownParser {
             } else if char == ">" && phase == .leadingPunctuation {
                 // Blockquotes make no difference
             } else {
+                nextLine.onlyRepeating = false
                 nextLine.onlyRepeatingAndSpaces = false
             }
             
