@@ -1,5 +1,7 @@
 Title:  Horizontal Rules
 
+Tags:   horizontal rules
+
 Link:   https://daringfireball.net/projects/markdown/syntax#hr
 
 Status: 9 - Tested

@@ -1,5 +1,7 @@
 Title:  Links
 
+Tags:   links
+
 Link:   https://daringfireball.net/projects/markdown/syntax#link
 
 Status: 9 - Tested

@@ -1,5 +1,7 @@
 Title:  Automatic Links
 
+Tags:   links
+
 Link:   https://daringfireball.net/projects/markdown/syntax#autolink
 
 Status: 9 - Tested
@@ -36,3 +38,5 @@ which will render in a browser as a clickable link to "address@example.com".
 most, address-harvesting bots, but it definitely won't fool all of
 them. It's better than nothing, but an address published in this way
 will probably eventually start receiving spam.)
+
+Note: The Notenik Markdown parser does not perform any randomized encoding of email addresses. This is an exception to the original Markdown spec from John Gruber.

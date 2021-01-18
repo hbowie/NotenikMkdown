@@ -14,6 +14,7 @@ enum MkdownLineType {
     case citationDef
     case citationItem
     case code
+    case codeFence
     case followOn
     case h1Underlines
     case h2Underlines

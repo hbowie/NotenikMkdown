@@ -1,5 +1,7 @@
 Title:  Code
 
+Tags:   code
+
 Link:   https://daringfireball.net/projects/markdown/syntax#code
 
 Status: 9 - Tested
@@ -59,5 +61,3 @@ to produce:
 
     <p><code>&amp;#8212;</code> is the decimal-encoded
     equivalent of <code>&amp;mdash;</code>.</p>
-
-

@@ -1,6 +1,6 @@
 Title:  Lists
 
-Tags:   block, indenting
+Tags:   block, indenting, lists
 
 Link:   https://daringfireball.net/projects/markdown/syntax#list
 

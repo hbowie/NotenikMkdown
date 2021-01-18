@@ -3,7 +3,7 @@
 //  Notenik
 //
 //  Created by Herb Bowie on 2/25/20.
-//  Copyright © 2020 Herb Bowie (https://hbowie.net)
+//  Copyright © 2020 - 2021 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -91,6 +91,10 @@ public class MkdownParser {
     var headingNumbers = [0, 0, 0, 0, 0, 0, 0]
     
     var indentToCode = false
+    
+    var codeFenced = false
+    var codeFenceChar: Character = " "
+    var codeFenceRepeatCount = 0
     
     public var counts = MkdownCounts()
     
@@ -197,6 +201,7 @@ public class MkdownParser {
              
             // Get the next character and adjust indices
             let char = mkdown[nextIndex]
+            
             /* Following code can be uncommented for debugging.
             print("char = \(char)")
             print("  - phase = \(phase)")
@@ -213,6 +218,7 @@ public class MkdownParser {
             print("  - following? \(following)")
             print("  - following type = \(followingType)")
              */
+            
             let lastIndex = nextIndex
             nextIndex = mkdown.index(after: nextIndex)
             lineIndex += 1
@@ -227,8 +233,8 @@ public class MkdownParser {
             
             endLine = nextIndex
             
-            // Check for a line of all dashes or all equal signs
-            if (char == "-" || char == "=" || char == "*" || char == "_")
+            // Check for a line consisting of a repetition of a single character.
+            if (char == "-" || char == "=" || char == "*" || char == "_" || char == "`" || char == "~")
                 && (nextLine.repeatingChar == " " || nextLine.repeatingChar == char) {
                 nextLine.repeatingChar = char
                 nextLine.repeatCount += 1
@@ -326,6 +332,9 @@ public class MkdownParser {
                         nextLine.textFound = true
                         startText = startBullet
                     }
+                } else if codeFenced && char.isWhitespace {
+                    phase = .text
+                    nextLine.textFound = true
                 } else if char == " " && spaceCount < 3 {
                     spaceCount += 1
                     continue
@@ -504,8 +513,23 @@ public class MkdownParser {
         }
         
         // Figure out some of the less ordinary line types.
-        if nextLine.type == .code {
-            // Don't bother looking for other indicators
+        if nextLine.codeFence(inProgress: codeFenced,
+                                     lastChar: codeFenceChar,
+                                     lastRepeatCount: codeFenceRepeatCount) {
+            nextLine.type = .codeFence
+            if codeFenced {
+                codeFenced = false
+                codeFenceChar = " "
+                codeFenceRepeatCount = 0
+            } else {
+                codeFenced = true
+                codeFenceChar = nextLine.repeatingChar
+                codeFenceRepeatCount = nextLine.repeatCount
+            }
+        } else if nextLine.type == .code {
+            // Don't bother looking in code for other indicators
+        } else if codeFenced {
+            nextLine.makeCode()
         } else if (refLink.isValid
             && (linkLabelPhase == .linkEnd || linkLabelPhase == .linkStart)) {
             linkDict[refLink.label] = refLink

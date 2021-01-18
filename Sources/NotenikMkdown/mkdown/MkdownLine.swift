@@ -46,6 +46,13 @@ class MkdownLine {
             (repeatingChar == "-" || repeatingChar == "*" || repeatingChar == "_")
     }
     
+    func codeFence(inProgress: Bool, lastChar: Character, lastRepeatCount: Int) -> Bool {
+        return (onlyRepeating && repeatCount >= 3 &&
+            (repeatingChar == "`" || repeatingChar == "~") &&
+            (!inProgress ||
+                (repeatingChar == lastChar && repeatCount == lastRepeatCount)))
+    }
+    
     var textFound = false
     var text = ""
 

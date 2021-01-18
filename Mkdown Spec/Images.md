@@ -1,5 +1,7 @@
 Title:  Images
 
+Tags:   images
+
 Link:   https://daringfireball.net/projects/markdown/syntax#img
 
 Status: 9 - Tested

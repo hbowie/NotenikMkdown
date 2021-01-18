@@ -1,6 +1,6 @@
 Title:  Code Blocks
 
-Tags:   block
+Tags:   block, code
 
 Link:   https://daringfireball.net/projects/markdown/syntax#precode
 

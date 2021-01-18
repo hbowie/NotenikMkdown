@@ -1,5 +1,7 @@
 Title:  Blockquotes
 
+Tags:   quotes
+
 Link:   https://daringfireball.net/projects/markdown/syntax#blockquote
 
 Status: 9 - Tested

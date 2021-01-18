@@ -1,5 +1,7 @@
 Title:  Emphasis
 
+Tags:   emphasis
+
 Link:   https://daringfireball.net/projects/markdown/syntax#em
 
 Status: 9 - Tested
@@ -46,6 +48,3 @@ would otherwise be used as an emphasis delimiter, you can backslash
 escape it:
 
     \*this text is surrounded by literal asterisks\*
-
-
-

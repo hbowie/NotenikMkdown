@@ -1,5 +1,7 @@
 Title:  Backslash Escapes
 
+Tags:   escape
+
 Link:   https://daringfireball.net/projects/markdown/syntax#backslash
 
 Status: 9 - Tested
@@ -30,4 +32,3 @@ Markdown provides backslash escapes for the following characters:
 	-	minus sign (hyphen)
     .   dot
     !   exclamation mark
-

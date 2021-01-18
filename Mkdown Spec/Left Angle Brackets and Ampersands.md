@@ -1,5 +1,7 @@
 Title:  Left Angle Brackets and Ampersands
 
+Tags:   special characters
+
 Status: 9 - Tested
 
 Seq:    1.3.1

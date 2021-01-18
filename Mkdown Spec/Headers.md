@@ -1,5 +1,7 @@
 Title:  Headers
 
+Tags:   headings
+
 Link:   https://daringfireball.net/projects/markdown/syntax#header
 
 Status: 9 - Tested

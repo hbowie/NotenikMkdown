@@ -1,5 +1,7 @@
 Title:  Automatic Escaping for Special Characters
 
+Tags:   special characters
+
 Link:   https://daringfireball.net/projects/markdown/syntax#autoescape
 
 Status: 9 - Tested

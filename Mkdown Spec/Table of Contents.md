@@ -28,3 +28,13 @@ Body:
 * [[Miscellaneous]]
 	* [[Backslash Escapes]]
 	* [[Automatic Links]]
+
+* [[Extensions]]
+	* [[Wiki Style Links]]
+	* [[Heading auto-numbering]]
+	* [[Heading ID Generation]]
+	* [[Table of Contents Generation]]
+	* [[Footnotes]]
+	* [[Citations]]
+	* [[Fenced Code Blocks]]
+
