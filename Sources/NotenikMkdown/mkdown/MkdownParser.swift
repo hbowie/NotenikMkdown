@@ -36,7 +36,7 @@ public class MkdownParser {
     
     var mkdown:    String! = ""
     
-    let interNoteDomain = "https://ntnk.app/"
+    public let interNoteDomain = "https://ntnk.app/"
     var wikiLinkPrefix = ""
     var wikiLinkSuffix = ""
     var wikiLinkFormatting: WikiLinkFormat = .common
