@@ -3,7 +3,7 @@
 //  Notenik
 //
 //  Created by Herb Bowie on 3/6/20.
-//  Copyright © 2020 Herb Bowie (https://powersurgepub.com)
+//  Copyright © 2020 - 2021 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -39,6 +39,16 @@ class MkdownBlockStack: Equatable {
         guard listItemPointer >= 0 && listItemPointer < blocks.count else { return nullBlock }
         let listItemBlock = blocks[listItemPointer]
         guard listItemBlock.tag == "li" else { return nullBlock }
+        return listItemBlock
+    }
+    
+    /// Return the list block at the requested level (with the first level denoted by zero).
+    func getDefItem(atLevel: Int) -> MkdownBlock {
+        guard atLevel >= 0 && atLevel < listPointers.count else { return nullBlock }
+        let listItemPointer = listPointers[atLevel] + 1
+        guard listItemPointer >= 0 && listItemPointer < blocks.count else { return nullBlock }
+        let listItemBlock = blocks[listItemPointer]
+        guard listItemBlock.tag == "dt" || listItemBlock.tag == "dd" else { return nullBlock }
         return listItemBlock
     }
     

@@ -3,7 +3,7 @@
 //  Notenik
 //
 //  Created by Herb Bowie on 3/6/20.
-//  Copyright © 2020 Herb Bowie (https://hbowie.net)
+//  Copyright © 2020 - 2021 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -46,11 +46,15 @@ class MkdownBlock: CustomStringConvertible, Equatable, NSCopying {
     }
     
     var isListTag: Bool {
-        return tag == "ul" || tag == "ol"
+        return tag == "ul" || tag == "ol" || tag == "dl"
     }
     
     var isListItem: Bool {
         return tag == "li"
+    }
+    
+    var isDefItem: Bool {
+        return tag == "dt" || tag == "dd"
     }
     
     var isBlockquote: Bool {

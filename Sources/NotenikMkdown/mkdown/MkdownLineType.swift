@@ -3,7 +3,7 @@
 //  Notenik
 //
 //  Created by Herb Bowie on 3/1/20.
-//  Copyright © 2020 Herb Bowie (https://powersurgepub.com)
+//  Copyright © 2020 - 2021 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -15,6 +15,8 @@ enum MkdownLineType {
     case citationItem
     case code
     case codeFence
+    case defTerm
+    case defDefinition
     case followOn
     case h1Underlines
     case h2Underlines
@@ -34,8 +36,12 @@ enum MkdownLineType {
         return self == .orderedItem || self == .footnoteItem || self == .citationItem
     }
     
+    var isDefItem: Bool {
+        return self == .defTerm || self == .defDefinition
+    }
+    
     var isListItem: Bool {
-        return isNumberedItem || self == .unorderedItem
+        return isNumberedItem || self == .unorderedItem || isDefItem
     }
     
     var hasText: Bool {
@@ -44,7 +50,7 @@ enum MkdownLineType {
     
     var textMayContinue: Bool {
         switch self {
-        case .orderedItem, .ordinaryText, .unorderedItem, .footnoteItem, .citationItem:
+        case .orderedItem, .ordinaryText, .unorderedItem, .footnoteItem, .citationItem, .defDefinition:
             return true
         default:
             return false

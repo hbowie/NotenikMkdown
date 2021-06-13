@@ -1,9 +1,9 @@
 //
 //  MkdownLine.swift
-//  Notenik
+//  NotenikMkdown
 //
 //  Created by Herb Bowie on 2/25/20.
-//  Copyright © 2020 Herb Bowie (https://hbowie.net)
+//  Copyright © 2020 - 2021 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -35,6 +35,8 @@ class MkdownLine {
     var onlyRepeatingAndSpaces = true
     
     var leadingBulletAndSpace = false
+    
+    var leadingColonAndSpace = false
     
     var headingUnderlining: Bool {
         return (onlyRepeating && repeatCount >= 2 &&
@@ -211,6 +213,8 @@ class MkdownLine {
         var listTag = "ul"
         if requestedType.isNumberedItem {
             listTag = "ol"
+        } else if requestedType.isDefItem {
+            listTag = "dl"
         }
         
         // If the previous line was blank, then let's look at the last non-blank line.
@@ -258,6 +262,72 @@ class MkdownLine {
             } else if requestedType == .citationItem {
                 newList.citationItem = true
             }
+            blocks.append(newList)
+            listItem.itemNumber = 1
+        }
+        blocks.append(listItem)
+    }
+    
+    /// Make this line a Definition Line.
+    func makeDefItem(requestedType: MkdownLineType,
+                     previousLine: MkdownLine,
+                     previousDefLine: MkdownLine) {
+        
+        // Ensure we're working with a valid line type.
+        guard requestedType == .defTerm || requestedType == .defDefinition else {
+            return
+        }
+        
+        if requestedType == .defDefinition {
+            switch previousLine.type {
+            case .defTerm, .defDefinition:
+                break
+            case .ordinaryText:
+                let blankLine = MkdownLine()
+                previousLine.makeDefItem(requestedType: .defTerm,
+                                         previousLine: blankLine,
+                                         previousDefLine: previousDefLine)
+            default:
+                return
+            }
+        }
+        
+        // Set the line type to the right sort of item.
+        self.type = requestedType
+        
+        let listTag = "dl"
+        var itemTag = "dt"
+        if requestedType == .defDefinition {
+            itemTag = "dd"
+        }
+        
+        var continueList = previousDefLine.type.isDefItem
+        
+        // Is this the first item in a new list, or the
+        // continuation of an existing list?
+        let listIndex = self.blocks.listPointers.count
+        var lastList = MkdownBlock()
+        var lastDefItem = MkdownBlock()
+        if listIndex < previousDefLine.blocks.listPointers.count {
+            lastList = previousDefLine.blocks.getListBlock(atLevel: listIndex)
+            lastDefItem = previousDefLine.blocks.getDefItem(atLevel: listIndex)
+            if lastList.tag == listTag
+                && (lastDefItem.tag == "dt" || lastDefItem.tag == "dd") {
+                continueList = true
+            } else {
+                continueList = false
+            }
+        } else {
+            continueList = false
+        }
+        
+        let listItem = MkdownBlock(itemTag)
+
+        if continueList {
+            blocks.append(lastList)
+            listItem.itemNumber = lastDefItem.itemNumber + 1
+        } else {
+            let newList = MkdownBlock(listTag)
             blocks.append(newList)
             listItem.itemNumber = 1
         }

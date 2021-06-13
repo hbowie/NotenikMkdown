@@ -1,6 +1,6 @@
 //
 //  MkdownParser.swift
-//  Notenik
+//  NotenikMkdown
 //
 //  Created by Herb Bowie on 2/25/20.
 //  Copyright © 2020 - 2021 Herb Bowie (https://hbowie.net)
@@ -47,6 +47,7 @@ public class MkdownParser {
     var nextLine = MkdownLine()
     var lastLine = MkdownLine()
     var lastNonBlankLine = MkdownLine()
+    var lastDefLine = MkdownLine()
     
     var lineIndex = -1
     var startLine: String.Index
@@ -62,6 +63,8 @@ public class MkdownParser {
     
     var leadingBullet = false
     
+    var leadingColon = false
+    
     var leadingLeftAngleBracket = false
     var leadingLeftAngleBracketAndSlash = false
     var possibleTagPending = false
@@ -75,6 +78,7 @@ public class MkdownParser {
     
     var startNumber: String.Index
     var startBullet: String.Index
+    var startColon:  String.Index
     
     var linkLabelPhase: LinkLabelDefPhase = .na
     var angleBracketsUsed = false
@@ -125,6 +129,7 @@ public class MkdownParser {
         endText = nextIndex
         startNumber = nextIndex
         startBullet = nextIndex
+        startColon = nextIndex
         wikiLinkPrefix = interNoteDomain
     }
     
@@ -138,6 +143,7 @@ public class MkdownParser {
         endText = nextIndex
         startNumber = nextIndex
         startBullet = nextIndex
+        startColon = nextIndex
         wikiLinkPrefix = interNoteDomain
     }
     
@@ -152,6 +158,7 @@ public class MkdownParser {
             endText = nextIndex
             startNumber = nextIndex
             startBullet = nextIndex
+            startColon = nextIndex
             wikiLinkPrefix = interNoteDomain
         } catch {
             print("Error is \(error)")
@@ -215,6 +222,7 @@ public class MkdownParser {
             print("  - leading number and period? \(leadingNumberAndPeriod)")
             print("  - leading number, period and space? \(leadingNumberPeriodAndSpace)")
             print("  - leading bullet? \(leadingBullet)")
+            print("  - leading colon? \(leadingColon)")
             print("  - following? \(following)")
             print("  - following type = \(followingType)")
              */
@@ -332,6 +340,23 @@ public class MkdownParser {
                         nextLine.textFound = true
                         startText = startBullet
                     }
+                } else if nextLine.leadingColonAndSpace {
+                    if char.isWhitespace {
+                        continue
+                    } else {
+                        phase = .text
+                    }
+                } else if leadingColon {
+                    if char.isWhitespace {
+                        nextLine.leadingColonAndSpace = true
+                        nextLine.makeDefItem(requestedType: .defDefinition,
+                                             previousLine: lastLine,
+                                             previousDefLine: lastDefLine)
+                    } else {
+                        phase = .text
+                        nextLine.textFound = true
+                        startText = startColon
+                    }
                 } else if codeFenced && char.isWhitespace {
                     phase = .text
                     nextLine.textFound = true
@@ -369,6 +394,10 @@ public class MkdownParser {
                     } else if char == "-" || char == "+" || char == "*" {
                         leadingBullet = true
                         startBullet = lastIndex
+                        continue
+                    } else if char == ":" {
+                        leadingColon = true
+                        startColon = lastIndex
                         continue
                     } else if char.isNumber {
                         if following &&
@@ -488,8 +517,10 @@ public class MkdownParser {
         leadingNumberAndPeriod = false
         leadingNumberPeriodAndSpace = false
         leadingBullet = false
+        leadingColon = false
         startNumber = nextIndex
         startBullet = nextIndex
+        startColon = nextIndex
         leadingLeftAngleBracket = false
         leadingLeftAngleBracketAndSlash = false
         possibleTag = ""
@@ -680,6 +711,12 @@ public class MkdownParser {
             }
             lastLine = nextLine
             lastNonBlankLine = nextLine
+        }
+        
+        if nextLine.type.isDefItem {
+            lastDefLine = nextLine
+        } else if nextLine.type != .blank {
+            lastDefLine = MkdownLine()
         }
 
     }
@@ -911,6 +948,8 @@ public class MkdownParser {
             
             let line = possibleLine!
             
+            line.display()
+            
             if !line.followOn {
                 // Close any outstanding blocks that are no longer in effect.
                 var startToClose = 0
@@ -973,6 +1012,8 @@ public class MkdownParser {
             case .ordinaryText:
                 textToChunks(line)
             case .orderedItem, .unorderedItem, .footnoteItem, .citationItem:
+                textToChunks(line)
+            case .defTerm, .defDefinition:
                 textToChunks(line)
             case .followOn:
                 textToChunks(line)
@@ -1230,6 +1271,12 @@ public class MkdownParser {
             writer.startBlockQuote()
         case "code":
             writer.startCode()
+        case "dd":
+            writer.startDefDef()
+        case "dl":
+            writer.startDefinitionList(klass: nil)
+        case "dt":
+            writer.startDefTerm()
         case "h1":
             writer.startHeading(level: 1, id: StringUtils.toCommonFileName(text))
         case "h2":
@@ -1285,6 +1332,12 @@ public class MkdownParser {
             writer.finishBlockQuote()
         case "code":
             writer.finishCode()
+        case "dd":
+            writer.finishDefDef()
+        case "dl":
+            writer.finishDefinitionList()
+        case "dt":
+            writer.finishDefTerm()
         case "h1":
             writer.finishHeading(level: 1)
         case "h2":
