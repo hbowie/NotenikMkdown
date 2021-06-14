@@ -271,6 +271,7 @@ class MkdownLine {
     /// Make this line a Definition Line.
     func makeDefItem(requestedType: MkdownLineType,
                      previousLine: MkdownLine,
+                     previousBlankLIne: MkdownLine,
                      previousDefLine: MkdownLine) {
         
         // Ensure we're working with a valid line type.
@@ -283,9 +284,9 @@ class MkdownLine {
             case .defTerm, .defDefinition:
                 break
             case .ordinaryText:
-                let blankLine = MkdownLine()
                 previousLine.makeDefItem(requestedType: .defTerm,
-                                         previousLine: blankLine,
+                                         previousLine: previousBlankLIne,
+                                         previousBlankLIne: previousBlankLIne,
                                          previousDefLine: previousDefLine)
             default:
                 return
@@ -299,6 +300,10 @@ class MkdownLine {
         var itemTag = "dt"
         if requestedType == .defDefinition {
             itemTag = "dd"
+        }
+        
+        if requestedType == .defTerm {
+            blocks.removeParaTag()
         }
         
         var continueList = previousDefLine.type.isDefItem
@@ -324,6 +329,7 @@ class MkdownLine {
         let listItem = MkdownBlock(itemTag)
 
         if continueList {
+            previousBlankLIne.blocks.append(lastList)
             blocks.append(lastList)
             listItem.itemNumber = lastDefItem.itemNumber + 1
         } else {

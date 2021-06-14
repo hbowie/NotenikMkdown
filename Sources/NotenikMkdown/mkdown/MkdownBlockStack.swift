@@ -105,6 +105,13 @@ class MkdownBlockStack: Equatable {
         }
     }
     
+    func removeParaTag() {
+        guard blocks.count > 0 else { return }
+        if last.tag == "p" {
+            blocks.removeLast()
+        }
+    }
+    
     func incrementHeadingLevel() -> Bool {
         if blocks.count == 0 || !blocks[lastIndex].isHeadingTag {
             blocks.append(MkdownBlock("h1"))

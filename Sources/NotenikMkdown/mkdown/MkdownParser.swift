@@ -47,6 +47,7 @@ public class MkdownParser {
     var nextLine = MkdownLine()
     var lastLine = MkdownLine()
     var lastNonBlankLine = MkdownLine()
+    var lastBlankLine = MkdownLine()
     var lastDefLine = MkdownLine()
     
     var lineIndex = -1
@@ -351,6 +352,7 @@ public class MkdownParser {
                         nextLine.leadingColonAndSpace = true
                         nextLine.makeDefItem(requestedType: .defDefinition,
                                              previousLine: lastLine,
+                                             previousBlankLIne: lastBlankLine,
                                              previousDefLine: lastDefLine)
                     } else {
                         phase = .text
@@ -701,6 +703,7 @@ public class MkdownParser {
                 lines.append(nextLine)
             }
             lastLine = nextLine
+            lastBlankLine = nextLine
         default:
             if withinFootnote {
                 footnote.lines.append(nextLine)
