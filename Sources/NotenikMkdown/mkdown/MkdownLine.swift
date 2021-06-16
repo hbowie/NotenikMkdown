@@ -329,7 +329,9 @@ class MkdownLine {
         let listItem = MkdownBlock(itemTag)
 
         if continueList {
-            previousBlankLIne.blocks.append(lastList)
+            if requestedType != .defDefinition {
+                previousBlankLIne.blocks.append(lastList)
+            }
             blocks.append(lastList)
             listItem.itemNumber = lastDefItem.itemNumber + 1
         } else {

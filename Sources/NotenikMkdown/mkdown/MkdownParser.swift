@@ -49,6 +49,7 @@ public class MkdownParser {
     var lastNonBlankLine = MkdownLine()
     var lastBlankLine = MkdownLine()
     var lastDefLine = MkdownLine()
+    var nonDefCount = 3
     
     var lineIndex = -1
     var startLine: String.Index
@@ -689,6 +690,18 @@ public class MkdownParser {
             lastLine.trailingSpaceCount = 0
         }
         
+        if nextLine.type.isDefItem {
+            lastDefLine = nextLine
+            nonDefCount = 0
+        } else if nextLine.type == .ordinaryText {
+            nonDefCount += 1
+        } else if nextLine.type != .blank {
+            nonDefCount = 3
+        }
+        if nonDefCount > 1 {
+            lastDefLine = MkdownLine()
+        }
+        
         switch nextLine.type {
         case .h1Underlines, .h2Underlines, .linkDef, .linkDefExt, .footnoteDef, .citationDef:
             break
@@ -714,12 +727,6 @@ public class MkdownParser {
             }
             lastLine = nextLine
             lastNonBlankLine = nextLine
-        }
-        
-        if nextLine.type.isDefItem {
-            lastDefLine = nextLine
-        } else if nextLine.type != .blank {
-            lastDefLine = MkdownLine()
         }
 
     }
@@ -951,7 +958,7 @@ public class MkdownParser {
             
             let line = possibleLine!
             
-            line.display()
+            // line.display()
             
             if !line.followOn {
                 // Close any outstanding blocks that are no longer in effect.
