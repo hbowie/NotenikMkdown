@@ -30,3 +30,24 @@ And following is a fence within a fence.
 ````
 ```
 ````
+
+And following is a block of Markdown code. 
+
+```
+
++ An unordered list. 
++ And another unordered item. 
+
+1. A numbered list. 
+2. And a second item. 
+3. And a third. 
+
+term
+: definition
+
+term 2
+: def 1
+: def 2
+
+And now a plain paragraph. 
+```

@@ -10,7 +10,7 @@ The following lines should not be mistaken for reference link definitions:
 
 [Notenik][]
 
-If you want to learn more about Noteni, visit
+If you want to learn more about Notenik, visit
 [Notenik.net][notenik]
 
 [Notenik]: https://notenik.net

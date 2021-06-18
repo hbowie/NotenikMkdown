@@ -360,7 +360,9 @@ public class MkdownParser {
                         nextLine.textFound = true
                         startText = startColon
                     }
-                } else if codeFenced && char.isWhitespace {
+                } else if codeFenced
+                            // && char.isWhitespace
+                {
                     phase = .text
                     nextLine.textFound = true
                 } else if char == " " && spaceCount < 3 {

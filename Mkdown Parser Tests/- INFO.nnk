@@ -1,6 +1,6 @@
 Title: Mkdown Tests
 
-Link: file:///Users/hbowie/Xcode/Notenik/Test%20Collections/Markdown%20Parser/
+Link: /Users/hbowie/Xcode/NotenikMkdown/Mkdown Parser Tests
 
 Sort Parm: 1
 
@@ -8,7 +8,11 @@ Sort Descending: false
 
 Other Fields Allowed: false
 
-Double Bracket Parsing: false
+Last Index Selected: 45
 
 Mirror Auto Index: false
+
+Display Body Label: true
+
+Display H1 Titles: false
 
