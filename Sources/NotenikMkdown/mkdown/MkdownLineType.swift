@@ -23,6 +23,7 @@ enum MkdownLineType {
     case heading
     case horizontalRule
     case html
+    case index
     case linkDef
     case linkDefExt
     case footnoteDef
@@ -30,6 +31,8 @@ enum MkdownLineType {
     case orderedItem
     case ordinaryText
     case tableOfContents
+    case tagsOutline
+    case tocForCollection
     case unorderedItem
     
     var isNumberedItem: Bool {

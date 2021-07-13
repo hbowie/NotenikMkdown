@@ -40,7 +40,8 @@ public class MkdownParser {
     var wikiLinkPrefix = ""
     var wikiLinkSuffix = ""
     var wikiLinkFormatting: WikiLinkFormat = .common
-    public var wikiLinkLookup: MkdownWikiLinkLookup?
+    
+    public var mkdownContext: MkdownContext?
     
     var nextIndex: String.Index
     
@@ -106,10 +107,10 @@ public class MkdownParser {
     
     /// A static utility function to convert markdown to HTML and write it to an instance of Markedup. 
     public static func markdownToMarkedup(markdown: String,
-                                          wikiLinkLookup: MkdownWikiLinkLookup?,
+                                          mkdownContext: MkdownContext?,
                                           writer: Markedup) {
         let md = MkdownParser(markdown)
-        md.wikiLinkLookup = wikiLinkLookup
+        md.mkdownContext = mkdownContext
         md.parse()
         writer.append(md.html)
     }
@@ -172,11 +173,11 @@ public class MkdownParser {
     public func setWikiLinkFormatting(prefix: String,
                                format: WikiLinkFormat,
                                suffix: String,
-                               lookup: MkdownWikiLinkLookup? = nil) {
+                               context: MkdownContext? = nil) {
         self.wikiLinkPrefix = prefix
         self.wikiLinkFormatting = format
         self.wikiLinkSuffix = suffix
-        self.wikiLinkLookup = lookup
+        self.mkdownContext = context
     }
     
     /// Perform the parsing.
@@ -621,9 +622,23 @@ public class MkdownParser {
                 nextLine.makeUnordered(previousLine: lastLine,
                                        previousNonBlankLine: lastNonBlankLine)
             }
-        } else if nextLine.line.hasPrefix("[") && nextLine.line.lowercased() == "[toc]" {
-            nextLine.type = .tableOfContents
-            tocFound = true
+        } else {
+            let lineLowered = nextLine.line.lowercased()
+            if lineLowered.hasPrefix("{:") {
+                if lineLowered.hasPrefix("{:collection-toc") {
+                    nextLine.type = .tocForCollection
+                } else if lineLowered.hasPrefix("{:index") {
+                    nextLine.type = .index
+                } else if lineLowered.hasPrefix("{:tags-outline") {
+                    nextLine.type = .tagsOutline
+                } else if lineLowered.hasPrefix("{:toc") {
+                    nextLine.type = .tableOfContents
+                    tocFound = true
+                }
+            } else if lineLowered == "[toc]" {
+                nextLine.type = .tableOfContents
+                tocFound = true
+            }
         }
         
         // Check for lines of HTML
@@ -1029,7 +1044,35 @@ public class MkdownParser {
                 textToChunks(line)
             case .followOn:
                 textToChunks(line)
-            default:
+            case .index:
+                if mkdownContext != nil {
+                    writer.writeLine(mkdownContext!.mkdownIndex())
+                }
+            case .tagsOutline:
+                if mkdownContext != nil {
+                    writer.writeLine(mkdownContext!.mkdownTagsOutline())
+                }
+            case .tocForCollection:
+                if mkdownContext != nil {
+                    writer.writeLine(mkdownContext!.mkdownCollectionTOC(commandText: line.text))
+                }
+            case .blank:
+                break
+            case .citationDef:
+                break
+            case .codeFence:
+                break
+            case .h1Underlines:
+                break
+            case .h2Underlines:
+                break
+            case .linkDef:
+                break
+            case .linkDefExt:
+                break
+            case .footnoteDef:
+                break
+            case .tableOfContents:
                 break
             }
             
@@ -2566,14 +2609,21 @@ public class MkdownParser {
     }
     
     func assembleWikiLink(title: String) -> String {
-        let formattedTitle = formatWikiLink(title)
+
+        /* let formattedTitle = formatWikiLink(title)
         
         var link = formattedTitle
         if wikiLinkLookup != nil {
             link = wikiLinkLookup!.mkdownWikiLinkLookup(linkText: formattedTitle)
             link = formatWikiLink(link)
         }
-        return wikiLinkPrefix + link + wikiLinkSuffix
+        return wikiLinkPrefix + link + wikiLinkSuffix */
+        
+        var linkTargetTitle = title
+        if mkdownContext != nil {
+            linkTargetTitle = mkdownContext!.mkdownWikiLinkLookup(linkText: title)
+        }
+        return wikiLinkPrefix + formatWikiLink(linkTargetTitle) + wikiLinkSuffix
     }
     
     func formatWikiLink(_ title: String) -> String {

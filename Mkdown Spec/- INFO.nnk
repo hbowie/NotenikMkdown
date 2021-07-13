@@ -1,6 +1,6 @@
 Title: Mkdown Spec
 
-Link: file:///Users/hbowie/Xcode/Notenik/Mkdown%20Parser/Mkdown%20Spec/
+Link: /Users/hbowie/Xcode/NotenikMkdown/Mkdown Spec
 
 Sort Parm: 1
 
@@ -8,7 +8,13 @@ Sort Descending: false
 
 Other Fields Allowed: false
 
-Double Bracket Parsing: true
+Last Index Selected: 22
 
 Mirror Auto Index: false
+
+Display Body Label: true
+
+Display H1 Titles: false
+
+Streamlined Reading: false
 
