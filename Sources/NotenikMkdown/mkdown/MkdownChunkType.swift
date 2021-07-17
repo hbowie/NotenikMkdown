@@ -99,4 +99,9 @@ enum MkdownChunkType {
     
     case endash
     case emdash
+    
+    case dollarSign
+    case startMath
+    case endMath
+    case skipMath
 }

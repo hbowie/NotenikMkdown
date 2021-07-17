@@ -36,10 +36,7 @@ public class MkdownParser {
     
     var mkdown:    String! = ""
     
-    public let interNoteDomain = "https://ntnk.app/"
-    var wikiLinkPrefix = ""
-    var wikiLinkSuffix = ""
-    var wikiLinkFormatting: WikiLinkFormat = .common
+    public var options = MkdownOptions()
     
     public var mkdownContext: MkdownContext?
     
@@ -103,14 +100,23 @@ public class MkdownParser {
     var codeFenceChar: Character = " "
     var codeFenceRepeatCount = 0
     
+    var mathLineStart = ""
+    var mathLineEnd = ""
+    var mathLineEndTrailingWhiteSpace = false
+    var mathLineValidStart: Bool {
+        return mathLineStart == "$$" || mathLineStart == "\\\\["
+    }
+    var startMath: String.Index
+    var endMath:   String.Index
+    
     public var counts = MkdownCounts()
     
     /// A static utility function to convert markdown to HTML and write it to an instance of Markedup. 
     public static func markdownToMarkedup(markdown: String,
+                                          options: MkdownOptions,
                                           mkdownContext: MkdownContext?,
                                           writer: Markedup) {
-        let md = MkdownParser(markdown)
-        md.mkdownContext = mkdownContext
+        let md = MkdownParser(markdown, options: options, context: mkdownContext)
         md.parse()
         writer.append(md.html)
     }
@@ -133,36 +139,28 @@ public class MkdownParser {
         startNumber = nextIndex
         startBullet = nextIndex
         startColon = nextIndex
-        wikiLinkPrefix = interNoteDomain
+        startMath = nextIndex
+        endMath = nextIndex
+    }
+    
+    public convenience init(options: MkdownOptions) {
+        self.init()
+        self.options = options
     }
     
     /// Initialize with a string that will be copied.
-    public init(_ mkdown: String) {
+    public convenience init(_ mkdown: String, options: MkdownOptions, context: MkdownContext? = nil) {
+        self.init()
         self.mkdown = mkdown
-        nextIndex = self.mkdown.startIndex
-        startText = nextIndex
-        startLine = nextIndex
-        endLine = nextIndex
-        endText = nextIndex
-        startNumber = nextIndex
-        startBullet = nextIndex
-        startColon = nextIndex
-        wikiLinkPrefix = interNoteDomain
+        self.options = options
+        self.mkdownContext = context
     }
     
     /// Try to initialize by reading input from a URL.
-    public init?(_ url: URL) {
+    public convenience init?(_ url: URL) {
+        self.init()
         do {
             try mkdown = String(contentsOf: url)
-            nextIndex = mkdown.startIndex
-            startText = nextIndex
-            startLine = nextIndex
-            endLine = nextIndex
-            endText = nextIndex
-            startNumber = nextIndex
-            startBullet = nextIndex
-            startColon = nextIndex
-            wikiLinkPrefix = interNoteDomain
         } catch {
             print("Error is \(error)")
             return nil
@@ -174,10 +172,10 @@ public class MkdownParser {
                                format: WikiLinkFormat,
                                suffix: String,
                                context: MkdownContext? = nil) {
-        self.wikiLinkPrefix = prefix
-        self.wikiLinkFormatting = format
-        self.wikiLinkSuffix = suffix
-        self.mkdownContext = context
+        options.wikiLinkPrefix = prefix
+        options.wikiLinkFormatting = format
+        options.wikiLinkSuffix = suffix
+        mkdownContext = context
     }
     
     /// Perform the parsing.
@@ -497,9 +495,41 @@ public class MkdownParser {
                         withinCitation = false
                     }
                 }
+            } // End of looking at text character.
+            
+            // Now let's look for indications of a math line.
+            if options.mathJax {
+                if mathLineStart.count < 2 {
+                    mathLineStart.append(char)
+                    startMath = nextIndex
+                } else if mathLineStart.count < 3 && mathLineStart != "$$" {
+                    mathLineStart.append(char)
+                    startMath = nextIndex
+                }
+                
+                if mathLineValidStart {
+                    if char.isWhitespace {
+                        mathLineEndTrailingWhiteSpace = true
+                    } else {
+                        if mathLineEndTrailingWhiteSpace {
+                            mathLineEnd = ""
+                            mathLineEndTrailingWhiteSpace = false
+                            endMath = lastIndex
+                        }
+                        mathLineEnd.append(char)
+                        if mathLineEnd.count > 3 {
+                            mathLineEnd.remove(at: mathLineEnd.startIndex)
+                            endMath = mkdown.index(after: endMath)
+                        }
+                        if mathLineEnd.count > 2 && mathLineEnd.hasSuffix("$$") {
+                            mathLineEnd.remove(at: mathLineEnd.startIndex)
+                            endMath = mkdown.index(after: endMath)
+                        }
+                    }
+                }
             }
             
-        } // end of mkdown input
+        } // End of processing each character.
         finishLine()
     } // end of func
     
@@ -537,6 +567,12 @@ public class MkdownParser {
         if lastLine.type != .followOn {
             followingType = lastLine.type
         }
+        mathLineStart = ""
+        mathLineEnd = ""
+        mathLineEndTrailingWhiteSpace = false
+        startMath = nextIndex
+        endMath = nextIndex
+
     }
     
     /// Wrap up initial examination of the line and figure out what to do with it.
@@ -622,6 +658,14 @@ public class MkdownParser {
                 nextLine.makeUnordered(previousLine: lastLine,
                                        previousNonBlankLine: lastNonBlankLine)
             }
+        } else if options.mathJax && mathLineStart == "$$" && mathLineEnd == "$$" {
+            nextLine.makeMath()
+            startText = startMath
+            endText = endMath
+        } else if options.mathJax && mathLineStart == "\\\\[" && mathLineEnd == "\\\\]" {
+            nextLine.makeMath()
+            startText = startMath
+            endText = endMath
         } else {
             let lineLowered = nextLine.line.lowercased()
             if lineLowered.hasPrefix("{:") {
@@ -1056,6 +1100,8 @@ public class MkdownParser {
                 if mkdownContext != nil {
                     writer.writeLine(mkdownContext!.mkdownCollectionTOC(commandText: line.text))
                 }
+            case .math:
+                writer.writeLine("$$\(line.text)$$")
             case .blank:
                 break
             case .citationDef:
@@ -1488,6 +1534,8 @@ public class MkdownParser {
                     addCharAsChunk(char: char, type: .leftParen, lastChar: lastChar, line: line)
                 case ")":
                     addCharAsChunk(char: char, type: .rightParen, lastChar: lastChar, line: line)
+                case "$":
+                    addCharAsChunk(char: char, type: .dollarSign, lastChar: lastChar, line: line)
                 case "\"":
                     addCharAsChunk(char: char, type: .doubleQuote, lastChar: lastChar, line: line)
                 case "'":
@@ -1649,12 +1697,14 @@ public class MkdownParser {
     // ===========================================================
     
     var withinCodeSpan = false
+    var withinMathSpan = false
     var withinTag = false
     
     /// Scan through our accumulated chunks, looking for meaningful patterns of puncutation.
     func identifyPatterns() {
         
         withinCodeSpan = false
+        withinMathSpan = false
         var index = 0
         while index < chunks.count {
             let chunk = chunks[index]
@@ -1663,11 +1713,13 @@ public class MkdownParser {
             case .asterisk, .underline:
                 if chunk.lineType == .code { break }
                 if withinCodeSpan { break }
+                if withinMathSpan { break }
                 if withinTag { break }
                 scanForEmphasisClosure(forChunkAt: index)
             case .leftAngleBracket:
                 if chunk.lineType == .code { break }
                 if withinCodeSpan { break }
+                if withinMathSpan { break }
                 if nextIndex >= chunks.count { break }
                 if chunks[nextIndex].startsWithSpace { break }
                 let auto = scanForAutoLink(forChunkAt: index)
@@ -1680,6 +1732,7 @@ public class MkdownParser {
             case .ampersand:
                 if chunk.lineType == .code { break }
                 if withinCodeSpan { break }
+                if withinMathSpan { break }
                 if withinTag { break }
                 if nextIndex >= chunks.count { break }
                 if chunks[nextIndex].startsWithSpace { break }
@@ -1687,6 +1740,7 @@ public class MkdownParser {
             case .leftSquareBracket:
                 if chunk.lineType == .code { break }
                 if withinCodeSpan { break }
+                if withinMathSpan { break }
                 if withinTag { break }
                 scanForLinkElements(forChunkAt: index)
             case .backtickQuote:
@@ -1695,9 +1749,34 @@ public class MkdownParser {
                     withinCodeSpan = true
                 }
             case .singleQuote, .doubleQuote:
-                if withinTag { break }
                 if withinCodeSpan { break }
+                if withinTag { break }
                 scanForQuotes(forChunkAt: index)
+            case .dollarSign:
+                if !options.mathJax { break }
+                if chunk.lineType == .code { break }
+                if withinCodeSpan { break }
+                if withinTag { break }
+                if nextIndex >= chunks.count { break }
+                if chunks[nextIndex].startsWithSpace { break }
+                if index > 0 && !chunks[index - 1].endsWithSpace { break }
+                scanForDollarSigns(forChunkAt: index)
+                if chunk.type == .startMath {
+                    withinMathSpan = true
+                }
+            case .backSlash:
+                if !options.mathJax { break }
+                if chunk.lineType == .code { break }
+                if withinCodeSpan { break }
+                if withinTag { break }
+                scanForSlashParens(forChunkAt: index)
+                if chunk.type == .startMath {
+                    withinMathSpan = true
+                }
+            case .startMath:
+                withinMathSpan = true
+            case .endMath:
+                withinMathSpan = false
             case .startCode:
                 withinCodeSpan = true
             case .endCode:
@@ -1711,6 +1790,104 @@ public class MkdownParser {
             }
             index += 1
         }
+    }
+    
+    func scanForDollarSigns(forChunkAt: Int) {
+        let firstChunk = chunks[forChunkAt]
+        guard forChunkAt + 2 < chunks.count else { return }
+        var next = forChunkAt + 1
+        var nextChunk = chunks[next]
+        var matched = false
+        while !matched && next < chunks.count {
+            nextChunk = chunks[next]
+            if nextChunk.type == .dollarSign {
+                let nextAfter = next + 1
+                if nextAfter >= chunks.count {
+                    matched = true
+                } else {
+                    let followingChunk = chunks[nextAfter]
+                    if followingChunk.startsWithSpace || followingChunk.type != .plaintext {
+                        matched = true
+                    }
+                }
+            }
+            if !matched {
+                next += 1
+            }
+        }
+        
+        guard matched else { return }
+        
+        firstChunk.type = .startMath
+        nextChunk.type  = .endMath
+    }
+    
+    func scanForSlashParens(forChunkAt: Int) {
+        let firstChunk = chunks[forChunkAt]
+        
+        var next = forChunkAt + 1
+        guard next < chunks.count else { return }
+        let chunk2 = chunks[next]
+        guard chunk2.type == .backSlash ||
+                (chunk2.type == .literal && chunk2.text == "\\") else {
+            return
+        }
+        
+        next += 1
+        guard next < chunks.count else { return }
+        let chunk3 = chunks[next]
+        guard chunk3.type == .leftParen else { return }
+        
+        next += 1
+        guard next < chunks.count else { return }
+        let chunk4 = chunks[next]
+        guard !chunk4.startsWithSpace else { return }
+        
+        var matched = false
+        var nextChunk = MkdownChunk()
+        var plusOne = MkdownChunk()
+        var plusTwo = MkdownChunk()
+        while !matched && next < chunks.count {
+            next += 1
+            guard next < chunks.count else { break }
+            nextChunk = chunks[next]
+            if nextChunk.type == .backSlash {
+                
+                guard next + 1 < chunks.count else { return }
+                plusOne = chunks[next + 1]
+                guard plusOne.type == .backSlash ||
+                        (plusOne.type == .literal && plusOne.text == "\\") else {
+                    continue
+                }
+                
+                guard next + 2 < chunks.count else { return }
+                plusTwo = chunks[next + 2]
+                guard plusTwo.type == .rightParen else { continue }
+                
+                if next + 3 >= chunks.count {
+                    matched = true
+                    continue
+                }
+                let plusThree = chunks[next + 3]
+                if plusThree.startsWithSpace {
+                    matched = true
+                    continue
+                }
+                if plusThree.type != .plaintext {
+                    matched = true
+                    continue
+                }
+            }
+        }
+        
+        guard matched else { return }
+        
+        firstChunk.type = .startMath
+        chunk2.type = .skipMath
+        chunk3.type = .skipMath
+        nextChunk.type = .skipMath
+        plusOne.type = .skipMath
+        plusTwo.type = .endMath
     }
     
     /// Scan for quotations marks.
@@ -2441,6 +2618,12 @@ public class MkdownParser {
                 finishAutoLink()
             case .backtickQuote:
                 writer.append("`")
+            case .startMath:
+                writer.append("\\(")
+            case .endMath:
+                writer.append("\\)")
+            case .skipMath:
+                break
             case .startCode:
                 writer.startCode()
             case .endCode:
@@ -2623,11 +2806,11 @@ public class MkdownParser {
         if mkdownContext != nil {
             linkTargetTitle = mkdownContext!.mkdownWikiLinkLookup(linkText: title)
         }
-        return wikiLinkPrefix + formatWikiLink(linkTargetTitle) + wikiLinkSuffix
+        return options.wikiLinkPrefix + formatWikiLink(linkTargetTitle) + options.wikiLinkSuffix
     }
     
     func formatWikiLink(_ title: String) -> String {
-        switch wikiLinkFormatting {
+        switch options.wikiLinkFormatting {
         case .common:
             return StringUtils.toCommon(title)
         case .fileName:

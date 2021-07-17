@@ -78,6 +78,11 @@ class MkdownLine {
         blocks.append("code")
     }
     
+    func makeMath() {
+        type = .math
+        addParagraph()
+    }
+    
     func makeHeading(level: Int, headingNumbers: inout [Int]) {
         
         var clear = headingNumbers.count - 1

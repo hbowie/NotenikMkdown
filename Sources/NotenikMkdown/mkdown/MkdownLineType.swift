@@ -28,6 +28,7 @@ enum MkdownLineType {
     case linkDefExt
     case footnoteDef
     case footnoteItem
+    case math
     case orderedItem
     case ordinaryText
     case tableOfContents
