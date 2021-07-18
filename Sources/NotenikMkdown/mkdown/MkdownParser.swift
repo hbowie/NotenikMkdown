@@ -666,23 +666,10 @@ public class MkdownParser {
             nextLine.makeMath()
             startText = startMath
             endText = endMath
-        } else {
-            let lineLowered = nextLine.line.lowercased()
-            if lineLowered.hasPrefix("{:") {
-                if lineLowered.hasPrefix("{:collection-toc") {
-                    nextLine.type = .tocForCollection
-                } else if lineLowered.hasPrefix("{:index") {
-                    nextLine.type = .index
-                } else if lineLowered.hasPrefix("{:tags-outline") {
-                    nextLine.type = .tagsOutline
-                } else if lineLowered.hasPrefix("{:toc") {
-                    nextLine.type = .tableOfContents
-                    tocFound = true
-                }
-            } else if lineLowered == "[toc]" {
-                nextLine.type = .tableOfContents
-                tocFound = true
-            }
+        } else if nextLine.line.hasPrefix("{{")
+                    || nextLine.line.hasPrefix("[")
+                    || nextLine.line.hasPrefix("{:") {
+            _ = checkForCommandClosing()
         }
         
         // Check for lines of HTML
@@ -790,6 +777,76 @@ public class MkdownParser {
             lastNonBlankLine = nextLine
         }
 
+    }
+    
+    func checkForCommandClosing() -> Bool {
+        var prefix = ""
+        var prefixComplete = false
+        var command = ""
+        var commandComplete = false
+        var suffix = ""
+        var digit1: Character = " "
+        var digit2: Character = " "
+        for char in nextLine.line {
+            if char.isLetter {
+                prefixComplete = true
+                command.append(char.lowercased())
+            } else if char == "}" || char == "]" {
+                prefixComplete = true
+                commandComplete = true
+                suffix.append(char)
+            } else if char.isWhitespace {
+                // We attach no significance to spaces or tabs
+            } else if !prefixComplete {
+                prefix.append(char)
+            } else if prefixComplete && char == ":" {
+                // The colon doesn't really need to go anywhere
+            } else if prefixComplete && char == "-" {
+                // The dash separating the two digits does not really carry any significance
+            } else if commandComplete {
+                suffix.append(char)
+            } else if char.isNumber && digit1 != " " {
+                digit2 = char
+            } else if char.isNumber {
+                digit1 = char
+            } else {
+                command.append(char.lowercased())
+            }
+        } // end of chars in line
+        
+        // See if we have a good prefix and a matching suffix.
+        guard (prefix == "{:" && suffix == "}")
+                || prefix == "[[" && suffix == "]]"
+                || (prefix == "[" && suffix == "]")
+                || (prefix == "{{" && suffix == "}}") else {
+            return false
+        }
+        
+        switch command {
+        case "collectiontoc":
+            nextLine.type = .tocForCollection
+            nextLine.tocLevelStart = digit1
+            if digit2.isNumber {
+                nextLine.tocLevelEnd = digit2
+            }
+            return true
+        case "toc":
+            nextLine.type = .tableOfContents
+            tocFound = true
+            nextLine.tocLevelStart = digit1
+            if digit2.isNumber {
+                nextLine.tocLevelEnd = digit2
+            }
+            return true
+        case "index":
+            nextLine.type = .index
+            return true
+        case "tagsoutline":
+            nextLine.type = .tagsOutline
+            return true
+        default:
+            return false
+        }
     }
     
     /// Figure out what to do with the next character found as part of a link label definition. 
@@ -963,8 +1020,12 @@ public class MkdownParser {
         var lastHeadingLevel = 0
         var indentLevels = 0
         var lastLine = MkdownLine()
+        var firstHeadingLevelRequested = 0
+        var lastHeadingLevelRequested = 999
         for line in lines {
             if line.type == .tableOfContents {
+                firstHeadingLevelRequested = line.tocLevelStartInt
+                lastHeadingLevelRequested = line.tocLevelEndInt
                 tocFound = true
                 continue
             }
@@ -972,6 +1033,14 @@ public class MkdownParser {
                 continue
             }
             if line.type != .heading {
+                continue
+            }
+            
+            if line.headingLevel < firstHeadingLevelRequested {
+                continue
+            }
+            
+            if line.headingLevel > lastHeadingLevelRequested {
                 continue
             }
             
@@ -996,8 +1065,17 @@ public class MkdownParser {
                 lastHeadingLevel = line.headingLevel
             }
             tocLine.indentLevels = indentLevels
+            tocLine.indentLevels = line.headingLevel - firstHeadingLevel
             
-            tocLine.makeUnordered(previousLine: lastLine, previousNonBlankLine: lastLine)
+            if tocLine.indentLevels > 0 {
+                for indentLevel in 1...tocLine.indentLevels {
+                    _ = tocLine.continueBlock(previousLine: lastLine,
+                                              previousNonBlankLine: lastLine,
+                                              forLevel: indentLevel)
+                }
+            }
+            tocLine.makeUnordered(previousLine: lastLine,
+                                  previousNonBlankLine: lastLine)
             
             tocLines.append(tocLine)
             lastLine = tocLine

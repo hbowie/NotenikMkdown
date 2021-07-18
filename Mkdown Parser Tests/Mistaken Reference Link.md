@@ -4,7 +4,7 @@ Seq:    10.2
 
 Body: 
 
-The following lines should not be mistaken for reference link definitions:
+The following lines should be interpreted as links, rather than reference link definitions:
 
 [Notenik](https://notenik.net)
 

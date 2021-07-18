@@ -38,6 +38,25 @@ class MkdownLine {
     
     var leadingColonAndSpace = false
     
+    var tocLevelStart: Character = " "
+    var tocLevelEnd: Character = "9"
+    var tocLevelStartInt: Int {
+        let int = Int(String(tocLevelStart))
+        if int != nil && int! >= 0 && int! <= 9 {
+            return int!
+        } else {
+            return 0
+        }
+    }
+    var tocLevelEndInt: Int {
+        let int = Int(String(tocLevelEnd))
+        if int != nil && int! >= 0 && int! <= 9 {
+            return int!
+        } else {
+            return 999
+        }
+    }
+    
     var headingUnderlining: Bool {
         return (onlyRepeating && repeatCount >= 2 &&
             (repeatingChar == "=" || repeatingChar == "-"))

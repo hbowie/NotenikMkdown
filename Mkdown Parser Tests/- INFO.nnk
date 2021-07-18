@@ -8,7 +8,7 @@ Sort Descending: false
 
 Other Fields Allowed: false
 
-Last Index Selected: 35
+Last Index Selected: 39
 
 Mirror Auto Index: false
 
@@ -17,4 +17,6 @@ Display Body Label: true
 Display H1 Titles: false
 
 Streamlined Reading: false
+
+MathJax: false
 

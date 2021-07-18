@@ -4,6 +4,12 @@ Seq:    6
 
 Body: 
 
+Here are HTML blockquotes. 
+
+<blockquote>
+<p>The job of management is to maintain an equitable and working balance among the claims of the various directly affected interest groups... stockholders, employees, customers and the public at large.</p>
+</blockquote>
+
 This is a regular line. 
 
 > This is a quoted line.
