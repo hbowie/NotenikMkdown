@@ -1176,7 +1176,10 @@ public class MkdownParser {
                 }
             case .tocForCollection:
                 if mkdownContext != nil {
-                    writer.writeLine(mkdownContext!.mkdownCollectionTOC(commandText: line.text))
+                    writer.writeLine(
+                        mkdownContext!.mkdownCollectionTOC(
+                            levelStart: line.tocLevelStartInt,
+                            levelEnd: line.tocLevelEndInt))
                 }
             case .math:
                 writer.writeLine("$$\(line.text)$$")

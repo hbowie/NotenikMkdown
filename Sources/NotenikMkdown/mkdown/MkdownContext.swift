@@ -19,7 +19,7 @@ public protocol MkdownContext {
     func mkdownWikiLinkLookup(linkText: String) -> String
     
     /// Return a Table of Contents for the Collection, formatted in HTML. 
-    func mkdownCollectionTOC(commandText: String) -> String
+    func mkdownCollectionTOC(levelStart: Int, levelEnd: Int) -> String
     
     /// Return an index to the Collection, formatted in HTML.
     func mkdownIndex() -> String
