@@ -1,0 +1,11 @@
+Title:  MathJax Options
+
+Timestamp: 20210724203242
+
+Seq:    3.1.1
+
+Level:  4 - Details
+
+Body: 
+
+MathJax support can either be turned on or off in the `MkdownOptions` object. 

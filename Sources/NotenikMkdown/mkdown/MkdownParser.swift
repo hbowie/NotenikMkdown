@@ -100,11 +100,12 @@ public class MkdownParser {
     var codeFenceChar: Character = " "
     var codeFenceRepeatCount = 0
     
-    var mathLineStart = ""
-    var mathLineEnd = ""
+    var mathBlock = false
+    var mathBlockStart = ""
+    var mathBlockEnd = ""
     var mathLineEndTrailingWhiteSpace = false
-    var mathLineValidStart: Bool {
-        return mathLineStart == "$$" || mathLineStart == "\\\\["
+    var mathBlockValidStart: Bool {
+        return mathBlockStart == "$$" || mathBlockStart == "\\\\["
     }
     var startMath: String.Index
     var endMath:   String.Index
@@ -202,6 +203,11 @@ public class MkdownParser {
         
         withinFootnote = false
         withinCitation = false
+        codeFenced = false
+        mathBlock = false
+        mathBlockStart = ""
+        mathBlockEnd = ""
+        mathLineEndTrailingWhiteSpace = false
         nextIndex = mkdown.startIndex
         beginLine()
         
@@ -497,34 +503,35 @@ public class MkdownParser {
                 }
             } // End of looking at text character.
             
-            // Now let's look for indications of a math line.
-            if options.mathJax {
-                if mathLineStart.count < 2 {
-                    mathLineStart.append(char)
+            // Now let's look for possible beginning of a math line.
+            if options.mathJax && !mathBlock {
+                if mathBlockStart.count < 2 {
+                    mathBlockStart.append(char)
                     startMath = nextIndex
-                } else if mathLineStart.count < 3 && mathLineStart != "$$" {
-                    mathLineStart.append(char)
+                } else if mathBlockStart.count < 3 && mathBlockStart != "$$" {
+                    mathBlockStart.append(char)
                     startMath = nextIndex
                 }
-                
-                if mathLineValidStart {
-                    if char.isWhitespace {
-                        mathLineEndTrailingWhiteSpace = true
-                    } else {
-                        if mathLineEndTrailingWhiteSpace {
-                            mathLineEnd = ""
-                            mathLineEndTrailingWhiteSpace = false
-                            endMath = lastIndex
-                        }
-                        mathLineEnd.append(char)
-                        if mathLineEnd.count > 3 {
-                            mathLineEnd.remove(at: mathLineEnd.startIndex)
-                            endMath = mkdown.index(after: endMath)
-                        }
-                        if mathLineEnd.count > 2 && mathLineEnd.hasSuffix("$$") {
-                            mathLineEnd.remove(at: mathLineEnd.startIndex)
-                            endMath = mkdown.index(after: endMath)
-                        }
+            }
+             
+            // And now let's look for the possible end of a math line.
+            if options.mathJax && mathBlockValidStart {
+                if char.isWhitespace {
+                    mathLineEndTrailingWhiteSpace = true
+                } else {
+                    if mathLineEndTrailingWhiteSpace {
+                        mathBlockEnd = ""
+                        mathLineEndTrailingWhiteSpace = false
+                        endMath = lastIndex
+                    }
+                    mathBlockEnd.append(char)
+                    if mathBlockEnd.count > 3 {
+                        mathBlockEnd.remove(at: mathBlockEnd.startIndex)
+                        endMath = mkdown.index(after: endMath)
+                    }
+                    if mathBlockEnd.count > 2 && mathBlockEnd.hasSuffix("$$") {
+                        mathBlockEnd.remove(at: mathBlockEnd.startIndex)
+                        endMath = mkdown.index(after: endMath)
                     }
                 }
             }
@@ -567,8 +574,7 @@ public class MkdownParser {
         if lastLine.type != .followOn {
             followingType = lastLine.type
         }
-        mathLineStart = ""
-        mathLineEnd = ""
+        mathBlockEnd = ""
         mathLineEndTrailingWhiteSpace = false
         startMath = nextIndex
         endMath = nextIndex
@@ -603,6 +609,14 @@ public class MkdownParser {
             // Don't bother looking in code for other indicators
         } else if codeFenced {
             nextLine.makeCode()
+        } else if mathBlock {
+            nextLine.makeMath()
+            let endOfMath = checkForMathClosing()
+            if endOfMath {
+                endText = endMath
+                mathBlock = false
+                mathBlockStart = ""
+            }
         } else if (refLink.isValid
             && (linkLabelPhase == .linkEnd || linkLabelPhase == .linkStart)) {
             linkDict[refLink.label] = refLink
@@ -658,14 +672,17 @@ public class MkdownParser {
                 nextLine.makeUnordered(previousLine: lastLine,
                                        previousNonBlankLine: lastNonBlankLine)
             }
-        } else if options.mathJax && mathLineStart == "$$" && mathLineEnd == "$$" {
+        } else if options.mathJax && mathBlockValidStart {
             nextLine.makeMath()
             startText = startMath
-            endText = endMath
-        } else if options.mathJax && mathLineStart == "\\\\[" && mathLineEnd == "\\\\]" {
-            nextLine.makeMath()
-            startText = startMath
-            endText = endMath
+            let endOfMath = checkForMathClosing()
+            if endOfMath {
+                endText = endMath
+                mathBlock = false
+                mathBlockStart = ""
+            } else {
+                mathBlock = true
+            }
         } else if nextLine.line.hasPrefix("{{")
                     || nextLine.line.hasPrefix("[")
                     || nextLine.line.hasPrefix("{:") {
@@ -777,6 +794,22 @@ public class MkdownParser {
             lastNonBlankLine = nextLine
         }
 
+    }
+        
+    /// See if the current line ends a math block.
+    func checkForMathClosing() -> Bool {
+        guard options.mathJax else {
+            mathBlock = false
+            mathBlockStart = ""
+            return true
+        }
+        // guard mathBlock else { return true }
+        let closed = (mathBlockStart == "$$" && mathBlockEnd == "$$")
+                || (mathBlockStart == "\\\\[" && mathBlockEnd == "\\\\]")
+        if closed {
+            endText = endMath
+        }
+        return closed
     }
     
     func checkForCommandClosing() -> Bool {
@@ -1097,6 +1130,7 @@ public class MkdownParser {
             
             let line = possibleLine!
             
+            // Useful for debugging:
             // line.display()
             
             if !line.followOn {
@@ -2483,6 +2517,7 @@ public class MkdownParser {
     /// Go through the chunks and write each one. 
     func writeChunks(chunksToWrite: [MkdownChunk]) {
         withinCodeSpan = false
+        withinMathSpan = false
         backslashed = false
         footnote = MkdownFootnote()
         citation = MkdownCitation()
@@ -2491,6 +2526,10 @@ public class MkdownParser {
                 withinCodeSpan = true
             } else if chunkToWrite.type == .endCode {
                 withinCodeSpan = false
+            } else if chunkToWrite.type == .startMath {
+                withinMathSpan = true
+            } else if chunkToWrite.type == .endMath {
+                withinMathSpan = false
             }
             write(chunk: chunkToWrite)
         }
@@ -2579,7 +2618,7 @@ public class MkdownParser {
             case .ampersand:
                 writer.writeAmpersand()
             case .backSlash:
-                if withinCodeSpan {
+                if withinCodeSpan || withinMathSpan {
                     writer.write("\\")
                 } else {
                     backslashed = true

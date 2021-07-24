@@ -1,0 +1,10 @@
+Title:  Phase 1 - func mdToLines
+
+Seq:    2.1
+
+Level:  3 - Subsection
+
+Body: 
+
+
+In this phase the parser breaks the input text into lines, and then stores the lines in an array, to be passed to the next phase. 

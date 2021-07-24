@@ -1,10 +1,10 @@
-Title: 
+Title: <title> 
 
-Tags: 
+Tags: <tags> 
 
-Link: 
+Link: <link> 
 
-Seq: 
+Seq: <seq> 
 
-Body: 
+Body:  
 
