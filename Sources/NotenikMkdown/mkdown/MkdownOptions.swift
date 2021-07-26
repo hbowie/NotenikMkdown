@@ -36,7 +36,18 @@ public class MkdownOptions {
         } else {
             mjUrlString = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
         }
-        return "<script id=\"MathJax-script\" async src=\"\(mjUrlString)\"></script>"
+        
+        var script = ""
+        script.append("<script> \n")
+        script.append("window.MathJax = { \n")
+        script.append("    tex: { \n")
+        script.append("      tags: 'ams' \n")
+        script.append("    } \n")
+        script.append("  }; \n")
+        script.append("</script> \n")
+        script.append("<script id=\"MathJax-script\" async src=\"\(mjUrlString)\"> \n")
+        script.append("</script>")
+        return script
     }
     
 }

@@ -102,6 +102,7 @@ public class MkdownParser {
     
     var mathBlock = false
     var mathBlockStart = ""
+    var mathBlockStartSaved = ""
     var mathBlockEnd = ""
     var mathLineEndTrailingWhiteSpace = false
     var mathBlockValidStart: Bool {
@@ -206,6 +207,7 @@ public class MkdownParser {
         codeFenced = false
         mathBlock = false
         mathBlockStart = ""
+        mathBlockStartSaved = ""
         mathBlockEnd = ""
         mathLineEndTrailingWhiteSpace = false
         nextIndex = mkdown.startIndex
@@ -515,7 +517,7 @@ public class MkdownParser {
             }
              
             // And now let's look for the possible end of a math line.
-            if options.mathJax && mathBlockValidStart {
+            if options.mathJax && (mathBlockValidStart || mathBlock) {
                 if char.isWhitespace {
                     mathLineEndTrailingWhiteSpace = true
                 } else {
@@ -574,6 +576,7 @@ public class MkdownParser {
         if lastLine.type != .followOn {
             followingType = lastLine.type
         }
+        mathBlockStart = ""
         mathBlockEnd = ""
         mathLineEndTrailingWhiteSpace = false
         startMath = nextIndex
@@ -615,7 +618,6 @@ public class MkdownParser {
             if endOfMath {
                 endText = endMath
                 mathBlock = false
-                mathBlockStart = ""
             }
         } else if (refLink.isValid
             && (linkLabelPhase == .linkEnd || linkLabelPhase == .linkStart)) {
@@ -673,13 +675,14 @@ public class MkdownParser {
                                        previousNonBlankLine: lastNonBlankLine)
             }
         } else if options.mathJax && mathBlockValidStart {
+            mathBlockStartSaved = mathBlockStart
             nextLine.makeMath()
             startText = startMath
             let endOfMath = checkForMathClosing()
             if endOfMath {
                 endText = endMath
                 mathBlock = false
-                mathBlockStart = ""
+                mathBlockStartSaved = ""
             } else {
                 mathBlock = true
             }
@@ -800,12 +803,11 @@ public class MkdownParser {
     func checkForMathClosing() -> Bool {
         guard options.mathJax else {
             mathBlock = false
-            mathBlockStart = ""
             return true
         }
         // guard mathBlock else { return true }
-        let closed = (mathBlockStart == "$$" && mathBlockEnd == "$$")
-                || (mathBlockStart == "\\\\[" && mathBlockEnd == "\\\\]")
+        let closed = (mathBlockStartSaved == "$$" && mathBlockEnd == "$$")
+                || (mathBlockStartSaved == "\\\\[" && mathBlockEnd == "\\\\]")
         if closed {
             endText = endMath
         }
