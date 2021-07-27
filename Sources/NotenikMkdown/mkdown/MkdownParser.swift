@@ -302,6 +302,8 @@ public class MkdownParser {
                 if openHTMLblock {
                     phase = .text
                     nextLine.makeHTML()
+                } else if mathBlock {
+                    phase = .text
                 } else if leadingNumberPeriodAndSpace {
                     if char.isWhitespace {
                         continue
@@ -613,8 +615,8 @@ public class MkdownParser {
         } else if codeFenced {
             nextLine.makeCode()
         } else if mathBlock {
-            nextLine.makeMath()
             let endOfMath = checkForMathClosing()
+            nextLine.makeMath(start: false, finish: endOfMath)
             if endOfMath {
                 endText = endMath
                 mathBlock = false
@@ -676,9 +678,9 @@ public class MkdownParser {
             }
         } else if options.mathJax && mathBlockValidStart {
             mathBlockStartSaved = mathBlockStart
-            nextLine.makeMath()
             startText = startMath
             let endOfMath = checkForMathClosing()
+            nextLine.makeMath(start: true, finish: endOfMath)
             if endOfMath {
                 endText = endMath
                 mathBlock = false
@@ -1218,7 +1220,14 @@ public class MkdownParser {
                             levelEnd: line.tocLevelEndInt))
                 }
             case .math:
-                writer.writeLine("$$\(line.text)$$")
+                if line.startMathBlock {
+                    writer.write("$$")
+                }
+                writer.write(line.text)
+                if line.finishMathBlock {
+                    writer.write("$$")
+                }
+                writer.newLine()
             case .blank:
                 break
             case .citationDef:

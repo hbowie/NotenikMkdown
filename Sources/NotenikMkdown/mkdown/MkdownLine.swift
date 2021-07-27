@@ -97,9 +97,14 @@ class MkdownLine {
         blocks.append("code")
     }
     
-    func makeMath() {
+    var startMathBlock = false
+    var finishMathBlock = false
+    
+    func makeMath(start: Bool, finish: Bool) {
         type = .math
         addParagraph()
+        startMathBlock = start
+        finishMathBlock = finish
     }
     
     func makeHeading(level: Int, headingNumbers: inout [Int]) {
@@ -461,6 +466,12 @@ class MkdownLine {
         }
         if horizontalRule {
             print("Horizontal Rule")
+        }
+        if startMathBlock {
+            print("Start Math Block")
+        }
+        if finishMathBlock {
+            print("Finish Math Block")
         }
         print("Text: '\(text)'")
         print("List Pointers Count: \(blocks.listPointers.count)")
