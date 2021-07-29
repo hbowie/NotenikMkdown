@@ -108,6 +108,7 @@ public class MkdownParser {
     var mathBlockValidStart: Bool {
         return mathBlockStart == "$$" || mathBlockStart == "\\\\["
     }
+    var startMathDelims: String.Index
     var startMath: String.Index
     var endMath:   String.Index
     
@@ -141,6 +142,7 @@ public class MkdownParser {
         startNumber = nextIndex
         startBullet = nextIndex
         startColon = nextIndex
+        startMathDelims = nextIndex
         startMath = nextIndex
         endMath = nextIndex
     }
@@ -302,7 +304,7 @@ public class MkdownParser {
                 if openHTMLblock {
                     phase = .text
                     nextLine.makeHTML()
-                } else if mathBlock {
+                } else if mathBlock && !char.isWhitespace {
                     phase = .text
                 } else if leadingNumberPeriodAndSpace {
                     if char.isWhitespace {
@@ -374,6 +376,47 @@ public class MkdownParser {
                 {
                     phase = .text
                     nextLine.textFound = true
+                } else if mathBlockStart.count > 0 {
+                    var abort = false
+                    var persevere = false
+                    var done = false
+                    switch char {
+                    case "$":
+                        if mathBlockStart == "$" {
+                            done = true
+                        } else {
+                            abort = true
+                        }
+                    case "\\":
+                        if mathBlockStart == "\\" {
+                            persevere = true
+                        } else {
+                            abort = true
+                        }
+                    case "[":
+                        if mathBlockStart == "\\\\" {
+                            done = true
+                        } else {
+                            abort = true
+                        }
+                    default:
+                        abort = true
+                    }
+                    if persevere {
+                        mathBlockStart.append(char)
+                        startMath = nextIndex
+                        continue
+                    } else if done {
+                        mathBlockStart.append(char)
+                        startMath = nextIndex
+                        phase = .text
+                        continue
+                    } else if abort {
+                        mathBlockStart = ""
+                        phase = .text
+                        nextLine.textFound = true
+                        startText = startMathDelims
+                    }
                 } else if char == " " && spaceCount < 3 {
                     spaceCount += 1
                     continue
@@ -390,6 +433,8 @@ public class MkdownParser {
                                                                     previousNonBlankLine: lastNonBlankLine,
                                                                     forLevel: nextLine.indentLevels)
                             if continuedBlock {
+                                continue
+                            } else if mathBlock {
                                 continue
                             } else {
                                 indentToCode = true
@@ -428,6 +473,10 @@ public class MkdownParser {
                         footnote = MkdownFootnote()
                         citation = MkdownCitation()
                         phase = .text
+                    } else if options.mathJax && (char == "$" || char == "\\") {
+                        mathBlockStart.append(char)
+                        startMathDelims = lastIndex
+                        continue
                     } else {
                         phase = .text
                     }
@@ -506,17 +555,6 @@ public class MkdownParser {
                     }
                 }
             } // End of looking at text character.
-            
-            // Now let's look for possible beginning of a math line.
-            if options.mathJax && !mathBlock {
-                if mathBlockStart.count < 2 {
-                    mathBlockStart.append(char)
-                    startMath = nextIndex
-                } else if mathBlockStart.count < 3 && mathBlockStart != "$$" {
-                    mathBlockStart.append(char)
-                    startMath = nextIndex
-                }
-            }
              
             // And now let's look for the possible end of a math line.
             if options.mathJax && (mathBlockValidStart || mathBlock) {
@@ -1223,7 +1261,9 @@ public class MkdownParser {
                 if line.startMathBlock {
                     writer.write("$$")
                 }
-                writer.write(line.text)
+                if StringUtils.trim(line.text).count > 0 {
+                    writer.write(line.text)
+                }
                 if line.finishMathBlock {
                     writer.write("$$")
                 }
@@ -1617,6 +1657,17 @@ public class MkdownParser {
             appendToNextChunk(str: " ", lastChar: " ", line: line)
         }
         for char in line.text {
+            if backslashed {
+                if !validEscape(char: char) {
+                    backslashed = false
+                    if chunks.count > 0 {
+                        let priorChunk = chunks[chunks.count - 1]
+                        if priorChunk.type == .backSlash {
+                            priorChunk.type = .plaintext
+                        }
+                    }
+                }
+            }
             if line.type == .code {
                 switch char {
                 case "<":
@@ -1702,6 +1753,17 @@ public class MkdownParser {
         if line.endsWithLineBreak {
             outputChunks()
             writer.lineBreak()
+        }
+    }
+    
+    func validEscape(char: Character) -> Bool {
+        switch char {
+        case "\\", "`", "*", "_", "{", "}", "[", "]", "(", ")":
+            return true
+        case "#", "+", "-", ".", "!":
+            return true
+        default:
+            return false
         }
     }
     
@@ -1809,7 +1871,6 @@ public class MkdownParser {
     
     /// Now finish evaluation of the chunks and write them out.
     func outputChunks() {
-        
         identifyPatterns()
         writeChunks(chunksToWrite: chunks)
         chunks = []
@@ -1885,7 +1946,21 @@ public class MkdownParser {
                 if withinTag { break }
                 if nextIndex >= chunks.count { break }
                 if chunks[nextIndex].startsWithSpace { break }
-                if index > 0 && !chunks[index - 1].endsWithSpace { break }
+                if index > 0 {
+                    let priorChunk = chunks[index - 1]
+                    if priorChunk.endsWithSpace {
+                        // might be start of math
+                    } else {
+                        let priorChar = priorChunk.text.last
+                        if priorChar == nil {
+                            // might be start of math
+                        } else if priorChar!.isPunctuation {
+                            // might be start of math
+                        } else {
+                            break
+                        }
+                    }
+                }
                 scanForDollarSigns(forChunkAt: index)
                 if chunk.type == .startMath {
                     withinMathSpan = true
@@ -1932,8 +2007,17 @@ public class MkdownParser {
                     matched = true
                 } else {
                     let followingChunk = chunks[nextAfter]
-                    if followingChunk.startsWithSpace || followingChunk.type != .plaintext {
+                    if followingChunk.startsWithSpace {
                         matched = true
+                    } else if followingChunk.type != .plaintext {
+                        matched = true
+                    } else {
+                        let followingChar = followingChunk.text.first
+                        if followingChar == nil {
+                            matched = true
+                        } else if followingChar!.isPunctuation {
+                            matched = true
+                        }
                     }
                 }
             }
@@ -1948,6 +2032,7 @@ public class MkdownParser {
         nextChunk.type  = .endMath
     }
     
+    // Look for backslash parenthesis combinations that indicate inline math.
     func scanForSlashParens(forChunkAt: Int) {
         let firstChunk = chunks[forChunkAt]
         

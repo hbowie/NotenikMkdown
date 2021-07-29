@@ -2,6 +2,10 @@ Title:  Table of Contents 2
 
 Seq:    221
 
+Code: 
+
+{:toc:2-3}
+
 Body: 
 
 {:toc:2-3}

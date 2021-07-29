@@ -70,9 +70,4 @@ f(x) = 4x^{12} -7x^{11} - x^{10} - 3x^9 + 31x^8 + x^7 + 4x^6 + 50x^5 \\ +21x^4 +
  +201x +4
 \end{multline}$$
 
-## Syntax Highlighting
 
-```scheme
-(define (double x)
-  (+ x x))
-```

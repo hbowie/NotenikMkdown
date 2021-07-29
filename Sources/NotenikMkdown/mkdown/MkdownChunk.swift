@@ -60,6 +60,17 @@ class MkdownChunk {
             print(" ")
             print("\(indent)\(title)")
         }
-        print("\(indent)Chunk type: \(type), words: \(wordCount), letters: \(textCount), text: '\(text)'")
+        var line = indent
+        line.append("Chunk type: \(type), ")
+        line.append("words: \(wordCount), ")
+        line.append("letters: \(textCount), ")
+        if startsWithSpace {
+            line.append("starts with space, ")
+        }
+        if endsWithSpace {
+            line.append("ends with space, ")
+        }
+        line.append("text: '\(text)'")
+        print(line)
     }
 }
