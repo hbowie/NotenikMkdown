@@ -966,18 +966,18 @@ public class MkdownParser {
              }
          case .colon:
              if !char.isWhitespace {
-                 if char == "<" {
-                     angleBracketsUsed = true
-                     linkLabelPhase = .linkStart
-                 } else if footnote.label.count > 0 {
+                if footnote.label.count > 0 {
                     footnote.text.append(char)
                     linkLabelPhase = .noteStart
-                 } else if citation.label.count > 0 {
+                } else if citation.label.count > 0 {
                     citation.text.append(char)
                     linkLabelPhase = .citationStart
-                 } else {
-                     refLink.link.append(char)
-                     linkLabelPhase = .linkStart
+                } else if char == "<" {
+                    angleBracketsUsed = true
+                    linkLabelPhase = .linkStart
+                } else {
+                    refLink.link.append(char)
+                    linkLabelPhase = .linkStart
                  }
              }
          case .noteStart:

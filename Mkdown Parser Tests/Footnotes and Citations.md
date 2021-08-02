@@ -1,6 +1,6 @@
 Title:  Footnotes and Citations
 
-Seq:    204
+Seq:    205
 
 Body: 
 
@@ -39,5 +39,4 @@ As shown in Appendix 1 (attached to email).
 
 Here is a link to Fletcher Penney's documentation on MMD citations: <https://fletcher.github.io/MultiMarkdown-6/syntax/citation.html>
 
-It gives a more thorough explanation into how MMD handles citations in various formats; suppressed locators (no page number), inline citations, etc. 
-
+It gives a more thorough explanation into how MMD handles citations in various formats; suppressed locators (no page number), inline citations, etc.
