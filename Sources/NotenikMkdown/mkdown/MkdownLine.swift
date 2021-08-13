@@ -121,10 +121,9 @@ class MkdownLine {
         type = .heading
         headingLevel = level
         if blocks.last.isHeadingTag || blocks.last.isParagraph {
-            blocks.last.tag = "h\(level)"
-        } else {
-            blocks.append("h\(level)")
+            blocks.removeLast()
         }
+        blocks.append("h\(level)")
     }
     
     /// If this line started with ordered item numbering, then take actions to preserve

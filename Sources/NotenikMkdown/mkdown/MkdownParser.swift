@@ -56,6 +56,7 @@ public class MkdownParser {
     var endText:   String.Index
     var phase:     MkdownLinePhase = .leadingPunctuation
     var spaceCount = 0
+    var charFollowingHashMarks: Character = " "
     
     var leadingNumber = false
     var leadingNumberAndPeriod = false
@@ -79,6 +80,7 @@ public class MkdownParser {
     var startNumber: String.Index
     var startBullet: String.Index
     var startColon:  String.Index
+    var startHash:   String.Index
     
     var linkLabelPhase: LinkLabelDefPhase = .na
     var angleBracketsUsed = false
@@ -114,16 +116,6 @@ public class MkdownParser {
     
     public var counts = MkdownCounts()
     
-    /// A static utility function to convert markdown to HTML and write it to an instance of Markedup. 
-    public static func markdownToMarkedup(markdown: String,
-                                          options: MkdownOptions,
-                                          mkdownContext: MkdownContext?,
-                                          writer: Markedup) {
-        let md = MkdownParser(markdown, options: options, context: mkdownContext)
-        md.parse()
-        writer.append(md.html)
-    }
-    
     
     // ===========================================================
     //
@@ -142,6 +134,7 @@ public class MkdownParser {
         startNumber = nextIndex
         startBullet = nextIndex
         startColon = nextIndex
+        startHash = nextIndex
         startMathDelims = nextIndex
         startMath = nextIndex
         endMath = nextIndex
@@ -371,6 +364,15 @@ public class MkdownParser {
                         nextLine.textFound = true
                         startText = startColon
                     }
+                } else if nextLine.hashCount > 0 {
+                    if char.isWhitespace {
+                        continue
+                    } else if char == "#" {
+                        _ = nextLine.incrementHashCount()
+                    } else {
+                        charFollowingHashMarks = char
+                        phase = .text
+                    }
                 } else if codeFenced
                             // && char.isWhitespace
                 {
@@ -449,6 +451,9 @@ public class MkdownParser {
                         continue
                     } else if char == "#" {
                         _ = nextLine.incrementHashCount()
+                        if nextLine.hashCount == 1 {
+                            startHash = lastIndex
+                        }
                         continue
                     } else if char == "-" || char == "+" || char == "*" {
                         leadingBullet = true
@@ -592,6 +597,7 @@ public class MkdownParser {
         endText = nextIndex
         phase = .leadingPunctuation
         spaceCount = 0
+        charFollowingHashMarks = " "
         if linkLabelPhase != .linkEnd {
             linkLabelPhase = .na
             angleBracketsUsed = false
@@ -606,6 +612,7 @@ public class MkdownParser {
         startNumber = nextIndex
         startBullet = nextIndex
         startColon = nextIndex
+        startHash = nextIndex
         leadingLeftAngleBracket = false
         leadingLeftAngleBracketAndSlash = false
         possibleTag = ""
@@ -700,7 +707,10 @@ public class MkdownParser {
             }
         } else if nextLine.horizontalRule {
             nextLine.makeHorizontalRule()
-        } else if nextLine.hashCount >= 1 && nextLine.hashCount <= 6 {
+        } else if nextLine.hashCount >= 1 && nextLine.hashCount <= 6 && nextLine.textFound &&
+                    (nextLine.hashCount > 1 ||
+                        charFollowingHashMarks.isWhitespace ||
+                        !charFollowingHashMarks.isNumber) {
             nextLine.makeHeading(level: nextLine.hashCount, headingNumbers: &headingNumbers)
         } else if nextLine.hashCount > 0 {
             startText = startLine
@@ -836,6 +846,8 @@ public class MkdownParser {
             lastLine = nextLine
             lastNonBlankLine = nextLine
         }
+        
+        // nextLine.display()
 
     }
         
