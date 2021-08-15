@@ -481,6 +481,10 @@ public class MkdownParser {
                     } else if options.mathJax && (char == "$" || char == "\\") {
                         mathBlockStart.append(char)
                         startMathDelims = lastIndex
+                        // if mathBlockValidStart && nextLine.indentLevels == 0 {
+                        //     withinFootnote = false
+                        //     withinCitation = false
+                        // }
                         continue
                     } else {
                         phase = .text
@@ -735,6 +739,10 @@ public class MkdownParser {
                 mathBlockStartSaved = ""
             } else {
                 mathBlock = true
+            }
+            if nextLine.indentLevels == 0 {
+                withinCitation = false
+                withinFootnote = false
             }
         } else if nextLine.line.hasPrefix("{{")
                     || nextLine.line.hasPrefix("[")
