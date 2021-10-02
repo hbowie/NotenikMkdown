@@ -1077,6 +1077,8 @@ public class MkdownParser {
     
     public var html: String { return writer.code }
     
+    public var wikiLinkList = WikiLinkList()
+    
     var lastQuoteLevel = 0
     var openBlock = ""
     
@@ -3037,10 +3039,19 @@ public class MkdownParser {
             link = formatWikiLink(link)
         }
         return wikiLinkPrefix + link + wikiLinkSuffix */
-        
         var linkTargetTitle = title
         if mkdownContext != nil {
-            linkTargetTitle = mkdownContext!.mkdownWikiLinkLookup(linkText: title)
+            let wikiLink = WikiLink()
+            wikiLink.originalTarget = title
+            let targetTitle = mkdownContext!.mkdownWikiLinkLookup(linkText: title)
+            if targetTitle == nil {
+                wikiLink.targetFound = false
+            } else {
+                wikiLink.updatedTarget = targetTitle!
+                wikiLink.targetFound = true
+                linkTargetTitle = targetTitle!
+            }
+            wikiLinkList.links.append(wikiLink)
         }
         return options.wikiLinkPrefix + formatWikiLink(linkTargetTitle) + options.wikiLinkSuffix
     }
