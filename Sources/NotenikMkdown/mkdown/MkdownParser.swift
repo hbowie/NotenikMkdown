@@ -3031,29 +3031,19 @@ public class MkdownParser {
     
     func assembleWikiLink(title: String) -> String {
 
-        /* let formattedTitle = formatWikiLink(title)
-        
-        var link = formattedTitle
-        if wikiLinkLookup != nil {
-            link = wikiLinkLookup!.mkdownWikiLinkLookup(linkText: formattedTitle)
-            link = formatWikiLink(link)
-        }
-        return wikiLinkPrefix + link + wikiLinkSuffix */
-        var linkTargetTitle = title
+        let wikiLink = WikiLink()
+        wikiLink.originalTarget = title
         if mkdownContext != nil {
-            let wikiLink = WikiLink()
-            wikiLink.originalTarget = title
             let targetTitle = mkdownContext!.mkdownWikiLinkLookup(linkText: title)
             if targetTitle == nil {
                 wikiLink.targetFound = false
             } else {
                 wikiLink.updatedTarget = targetTitle!
                 wikiLink.targetFound = true
-                linkTargetTitle = targetTitle!
             }
             wikiLinkList.links.append(wikiLink)
         }
-        return options.wikiLinkPrefix + formatWikiLink(linkTargetTitle) + options.wikiLinkSuffix
+        return options.wikiLinkPrefix + formatWikiLink(wikiLink.bestTarget) + options.wikiLinkSuffix
     }
     
     func formatWikiLink(_ title: String) -> String {
