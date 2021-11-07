@@ -3020,7 +3020,7 @@ public class MkdownParser {
         }
         
         if imageNotLink {
-            writer.image(text: linkText, path: linkURL, title: linkTitle)
+            writer.image(alt: linkText, path: linkURL, title: linkTitle)
         } else {
             writer.startLink(path: linkURL, title: linkTitle)
             writeChunks(chunksToWrite: linkTextChunks)
