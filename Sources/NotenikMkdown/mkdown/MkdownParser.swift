@@ -1255,7 +1255,7 @@ public class MkdownParser {
             case .horizontalRule:
                 writer.horizontalRule()
             case .html:
-                writer.writeLine(line.line)
+                writeHTMLLine(line)
             case .ordinaryText:
                 textToChunks(line)
             case .orderedItem, .unorderedItem, .footnoteItem, .citationItem:
@@ -1389,6 +1389,84 @@ public class MkdownParser {
         mainLineIndex += 1
         return nextLine
     }
+    
+    /// Write a line of HTML, converting ntnk.app links when needed.
+    /// - Parameter line: The line of HTML to be written.
+    func writeHTMLLine(_ line: MkdownLine) {
+        
+        guard mkdownContext != nil
+                && options.wikiLinkFormatting == .fileName
+                && options.interNoteDomain.count > 1 else {
+            writer.writeLine(line.line)
+            return
+        }
+        
+        var newLine = ""
+        var matchingPhase = 0
+        
+        let domain = options.interNoteDomain
+        var domainIndex = domain.startIndex
+        var precedingStart = line.line.startIndex
+        var domainStart = line.line.startIndex
+        var domainEnd   = line.line.startIndex
+        var idEnd       = line.line.startIndex
+        
+        var lineIndex = line.line.startIndex
+        while lineIndex < line.line.endIndex {
+            
+            let lineChar = line.line[lineIndex]
+            
+            switch matchingPhase {
+                
+            case 0:
+                if lineChar == domain[domain.startIndex] {
+                    matchingPhase = 1
+                    domainStart = lineIndex
+                    domainIndex = domain.index(after: domain.startIndex)
+                }
+                
+            case 1:
+                if lineChar == domain[domainIndex] {
+                    domainIndex = domain.index(after: domainIndex)
+                    if domainIndex >= domain.endIndex {
+                        domainEnd = line.line.index(after: lineIndex)
+                        matchingPhase = 2
+                    }
+                } else {
+                    matchingPhase = 0
+                }
+                
+            case 2:
+                if lineChar == "\"" {
+                    idEnd = lineIndex
+                    let id = String(line.line[domainEnd..<idEnd])
+                    let wikiLink = assembleWikiLink(title: id)
+                    if !wikiLink.isEmpty {
+                        newLine.append(String(line.line[precedingStart..<domainStart]))
+                        newLine.append(wikiLink)
+                        precedingStart = lineIndex
+                    }
+                    matchingPhase = 0
+                }
+                
+            default:
+                break
+                
+            }
+            
+            lineIndex = line.line.index(after: lineIndex)
+        }
+        
+        if newLine.isEmpty {
+            writer.writeLine(line.line)
+            return
+        }
+        newLine.append(String(line.line[precedingStart..<line.line.endIndex]))
+        writer.writeLine(newLine)
+        
+    }
+    
+    
     
     /// Write out HTML to start footnote section of the document.
     func startWritingFootnotes() {
