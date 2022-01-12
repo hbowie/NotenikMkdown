@@ -3,7 +3,7 @@
 //  NotenikMkdown
 //
 //  Created by Herb Bowie on 2/25/20.
-//  Copyright © 2020 - 2021 Herb Bowie (https://hbowie.net)
+//  Copyright © 2020 - 2022 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -34,13 +34,12 @@ public class MkdownParser {
     // Phase 2: Go through the lines, generating HTML output.
     // ===============================================================
     
-    var mkdown:    String! = ""
+    var mdin = MkdownInputStack()
+    var textToInclude: String? = nil
     
     public var options = MkdownOptions()
     
     public var mkdownContext: MkdownContext?
-    
-    var nextIndex: String.Index
     
     var nextLine = MkdownLine()
     var lastLine = MkdownLine()
@@ -50,10 +49,7 @@ public class MkdownParser {
     var nonDefCount = 3
     
     var lineIndex = -1
-    var startLine: String.Index
-    var startText: String.Index
-    var endLine:   String.Index
-    var endText:   String.Index
+
     var phase:     MkdownLinePhase = .leadingPunctuation
     var spaceCount = 0
     var charFollowingHashMarks: Character = " "
@@ -76,11 +72,6 @@ public class MkdownParser {
     
     var openHTMLblockTag = ""
     var openHTMLblock = false
-    
-    var startNumber: String.Index
-    var startBullet: String.Index
-    var startColon:  String.Index
-    var startHash:   String.Index
     
     var linkLabelPhase: LinkLabelDefPhase = .na
     var angleBracketsUsed = false
@@ -110,9 +101,6 @@ public class MkdownParser {
     var mathBlockValidStart: Bool {
         return mathBlockStart == "$$" || mathBlockStart == "\\\\["
     }
-    var startMathDelims: String.Index
-    var startMath: String.Index
-    var endMath:   String.Index
     
     public var counts = MkdownCounts()
     
@@ -126,18 +114,7 @@ public class MkdownParser {
     
     /// Initialize with an empty string.
     public init() {
-        nextIndex = mkdown.startIndex
-        startText = nextIndex
-        startLine = nextIndex
-        endLine = nextIndex
-        endText = nextIndex
-        startNumber = nextIndex
-        startBullet = nextIndex
-        startColon = nextIndex
-        startHash = nextIndex
-        startMathDelims = nextIndex
-        startMath = nextIndex
-        endMath = nextIndex
+        mdin = MkdownInputStack()
     }
     
     public convenience init(options: MkdownOptions) {
@@ -148,7 +125,7 @@ public class MkdownParser {
     /// Initialize with a string that will be copied.
     public convenience init(_ mkdown: String, options: MkdownOptions, context: MkdownContext? = nil) {
         self.init()
-        self.mkdown = mkdown
+        mdin = MkdownInputStack(mkdown)
         self.options = options
         self.mkdownContext = context
     }
@@ -157,7 +134,8 @@ public class MkdownParser {
     public convenience init?(_ url: URL) {
         self.init()
         do {
-            try mkdown = String(contentsOf: url)
+            let mkdown = try String(contentsOf: url)
+            mdin = MkdownInputStack(mkdown)
         } catch {
             print("Error is \(error)")
             return nil
@@ -178,7 +156,7 @@ public class MkdownParser {
     /// Perform the parsing.
     public func parse() {
         
-        counts.size = mkdown.count
+        counts.size = mdin.count
         counts.lines = 0
         counts.words = 0
         counts.text = 0
@@ -205,45 +183,26 @@ public class MkdownParser {
         mathBlockStartSaved = ""
         mathBlockEnd = ""
         mathLineEndTrailingWhiteSpace = false
-        nextIndex = mkdown.startIndex
+        mdin.reset()
         beginLine()
         
-        while nextIndex < mkdown.endIndex {
+        while mdin.moreChars {
              
             // Get the next character and adjust indices
-            let char = mkdown[nextIndex]
+            guard let char = mdin.nextChar() else { break }
             
-            /* Following code can be uncommented for debugging.
-            print("char = \(char)")
-            print("  - phase = \(phase)")
-            print("  - repeating char = \(nextLine.repeatingChar)")
-            print("  - repeat count = \(nextLine.repeatCount)")
-            print("  - only repeating? \(nextLine.onlyRepeating)")
-            print("  - only repeating and spaces? \(nextLine.onlyRepeatingAndSpaces)")
-            print("  - possible tag pending? \(possibleTagPending)")
-            print("  - open HTML block? \(openHTMLblock)")
-            print("  - leading number? \(leadingNumber)")
-            print("  - leading number and period? \(leadingNumberAndPeriod)")
-            print("  - leading number, period and space? \(leadingNumberPeriodAndSpace)")
-            print("  - leading bullet? \(leadingBullet)")
-            print("  - leading colon? \(leadingColon)")
-            print("  - following? \(following)")
-            print("  - following type = \(followingType)")
-             */
-            
-            let lastIndex = nextIndex
-            nextIndex = mkdown.index(after: nextIndex)
             lineIndex += 1
             
             // Deal with end of line
             if char.isNewline {
                 nextLine.endsWithNewline = true
                 finishLine()
+                pushAndPopIncludes()
                 beginLine()
                 continue
             }
             
-            endLine = nextIndex
+            mdin.setIndex(.endLine, to: .next)
             
             // Check for a line consisting of a repetition of a single character.
             if (char == "-" || char == "=" || char == "*" || char == "_" || char == "`" || char == "~")
@@ -314,7 +273,7 @@ public class MkdownParser {
                     } else {
                         phase = .text
                         nextLine.textFound = true
-                        startText = startNumber
+                        mdin.setIndex(.startText, to: .startNumber)
                     }
                 } else if leadingNumber {
                     if char.isNumber {
@@ -325,7 +284,7 @@ public class MkdownParser {
                     } else {
                         phase = .text
                         nextLine.textFound = true
-                        startText = startNumber
+                        mdin.setIndex(.startText, to: .startNumber)
                     }
                 } else if nextLine.leadingBulletAndSpace {
                     if char.isWhitespace {
@@ -344,7 +303,7 @@ public class MkdownParser {
                     } else {
                         phase = .text
                         nextLine.textFound = true
-                        startText = startBullet
+                        mdin.setIndex(.startText, to: .startBullet)
                     }
                 } else if nextLine.leadingColonAndSpace {
                     if char.isWhitespace {
@@ -362,7 +321,7 @@ public class MkdownParser {
                     } else {
                         phase = .text
                         nextLine.textFound = true
-                        startText = startColon
+                        mdin.setIndex(.startText, to: .startColon)
                     }
                 } else if nextLine.hashCount > 0 {
                     if char.isWhitespace {
@@ -406,18 +365,18 @@ public class MkdownParser {
                     }
                     if persevere {
                         mathBlockStart.append(char)
-                        startMath = nextIndex
+                        mdin.setIndex(.startMath, to: .next)
                         continue
                     } else if done {
                         mathBlockStart.append(char)
-                        startMath = nextIndex
+                        mdin.setIndex(.startMath, to: .next)
                         phase = .text
                         continue
                     } else if abort {
                         mathBlockStart = ""
                         phase = .text
                         nextLine.textFound = true
-                        startText = startMathDelims
+                        mdin.setIndex(.startText, to: .startMathDelims)
                     }
                 } else if char == " " && spaceCount < 3 {
                     spaceCount += 1
@@ -440,7 +399,7 @@ public class MkdownParser {
                                 continue
                             } else {
                                 indentToCode = true
-                                startText = nextIndex
+                                mdin.setIndex(.startText, to: .next)
                                 phase = .text
                                 nextLine.textFound = true
                                 continue
@@ -452,16 +411,16 @@ public class MkdownParser {
                     } else if char == "#" {
                         _ = nextLine.incrementHashCount()
                         if nextLine.hashCount == 1 {
-                            startHash = lastIndex
+                            mdin.setIndex(.startHash, to: .last)
                         }
                         continue
                     } else if char == "-" || char == "+" || char == "*" {
                         leadingBullet = true
-                        startBullet = lastIndex
+                        mdin.setIndex(.startBullet, to: .last)
                         continue
                     } else if char == ":" {
                         leadingColon = true
-                        startColon = lastIndex
+                        mdin.setIndex(.startColon, to: .last)
                         continue
                     } else if char.isNumber {
                         if following &&
@@ -469,7 +428,7 @@ public class MkdownParser {
                             phase = .text
                         } else {
                             leadingNumber = true
-                            startNumber = lastIndex
+                            mdin.setIndex(.startNumber, to: .last)
                             continue
                         }
                     } else if char == "[" && nextLine.indentLevels < 1 {
@@ -480,7 +439,7 @@ public class MkdownParser {
                         phase = .text
                     } else if options.mathJax && (char == "$" || char == "\\") {
                         mathBlockStart.append(char)
-                        startMathDelims = lastIndex
+                        mdin.setIndex(.startMathDelims, to: .last)
                         // if mathBlockValidStart && nextLine.indentLevels == 0 {
                         //     withinFootnote = false
                         //     withinCitation = false
@@ -514,8 +473,8 @@ public class MkdownParser {
                     }
                 }
                 if !nextLine.textFound {
-                     nextLine.textFound = true
-                     startText = lastIndex
+                    nextLine.textFound = true
+                    mdin.setIndex(.startText, to: .last)
                 }
                 if char == " " {
                     nextLine.trailingSpaceCount += 1
@@ -534,7 +493,7 @@ public class MkdownParser {
                 if char == "#" && nextLine.hashCount > 0 && nextLine.hashCount < 7 {
                     // Drop trailing hash marks
                 } else {
-                    endText = nextIndex
+                    mdin.setIndex(.endText, to: .next)
                 }
                 
                 // Let's see if we have a possible reference link definition in work.
@@ -573,16 +532,16 @@ public class MkdownParser {
                     if mathLineEndTrailingWhiteSpace {
                         mathBlockEnd = ""
                         mathLineEndTrailingWhiteSpace = false
-                        endMath = lastIndex
+                        mdin.setIndex(.endMath, to: .last)
                     }
                     mathBlockEnd.append(char)
                     if mathBlockEnd.count > 3 {
                         mathBlockEnd.remove(at: mathBlockEnd.startIndex)
-                        endMath = mkdown.index(after: endMath)
+                        mdin.indexAfter(.endMath)
                     }
                     if mathBlockEnd.count > 2 && mathBlockEnd.hasSuffix("$$") {
                         mathBlockEnd.remove(at: mathBlockEnd.startIndex)
-                        endMath = mkdown.index(after: endMath)
+                        mdin.indexAfter(.endMath)
                     }
                 }
             }
@@ -591,14 +550,26 @@ public class MkdownParser {
         finishLine()
     } // end of func
     
+    /// Add new included text if found, and remove old included text when finished with it.
+    func pushAndPopIncludes() {
+
+        if textToInclude != nil {
+            mdin.push(textToInclude!)
+            textToInclude = nil
+        } else {
+            mdin.popIfEnded()
+        }
+    }
+    
     /// Prepare for a new Markdown line.
     func beginLine() {
+        textToInclude = nil
         nextLine = MkdownLine()
         lineIndex = -1
-        startText = nextIndex
-        startLine = nextIndex
-        endLine = nextIndex
-        endText = nextIndex
+        mdin.setIndex(.startText, to: .next)
+        mdin.setIndex(.startLine, to: .next)
+        mdin.setIndex(.endLine, to: .next)
+        mdin.setIndex(.endText, to: .next)
         phase = .leadingPunctuation
         spaceCount = 0
         charFollowingHashMarks = " "
@@ -613,10 +584,10 @@ public class MkdownParser {
         leadingNumberPeriodAndSpace = false
         leadingBullet = false
         leadingColon = false
-        startNumber = nextIndex
-        startBullet = nextIndex
-        startColon = nextIndex
-        startHash = nextIndex
+        mdin.setIndex(.startNumber, to: .next)
+        mdin.setIndex(.startBullet, to: .next)
+        mdin.setIndex(.startColon, to: .next)
+        mdin.setIndex(.startHash, to: .next)
         leadingLeftAngleBracket = false
         leadingLeftAngleBracketAndSlash = false
         possibleTag = ""
@@ -630,8 +601,8 @@ public class MkdownParser {
         mathBlockStart = ""
         mathBlockEnd = ""
         mathLineEndTrailingWhiteSpace = false
-        startMath = nextIndex
-        endMath = nextIndex
+        mdin.setIndex(.startMath, to: .next)
+        mdin.setIndex(.endMath, to: .next)
 
     }
     
@@ -641,9 +612,7 @@ public class MkdownParser {
         counts.lines += 1
         
         // Capture the entire line for later processing.
-        if endLine > startLine {
-            nextLine.line = String(mkdown[startLine..<endLine])
-        }
+        nextLine.line = mdin.getLine()
         
         // Figure out some of the less ordinary line types.
         if nextLine.codeFence(inProgress: codeFenced,
@@ -667,7 +636,7 @@ public class MkdownParser {
             let endOfMath = checkForMathClosing()
             nextLine.makeMath(start: false, finish: endOfMath)
             if endOfMath {
-                endText = endMath
+                mdin.setIndex(.endText, to: .endMath)
                 mathBlock = false
             }
         } else if (refLink.isValid
@@ -717,11 +686,11 @@ public class MkdownParser {
                         !charFollowingHashMarks.isNumber) {
             nextLine.makeHeading(level: nextLine.hashCount, headingNumbers: &headingNumbers)
         } else if nextLine.hashCount > 0 {
-            startText = startLine
+            mdin.setIndex(.startText, to: .startLine)
             nextLine.makeOrdinary()
         } else if nextLine.leadingBulletAndSpace {
             if following && followingType != .unorderedItem {
-                startText = startLine
+                mdin.setIndex(.startText, to: .startLine)
                 nextLine.leadingBulletAndSpace = false
                 nextLine.type = .followOn
             } else {
@@ -730,11 +699,11 @@ public class MkdownParser {
             }
         } else if options.mathJax && mathBlockValidStart {
             mathBlockStartSaved = mathBlockStart
-            startText = startMath
+            mdin.setIndex(.startText, to: .startMath)
             let endOfMath = checkForMathClosing()
             nextLine.makeMath(start: true, finish: endOfMath)
             if endOfMath {
-                endText = endMath
+                mdin.setIndex(.endText, to: .endMath)
                 mathBlock = false
                 mathBlockStartSaved = ""
             } else {
@@ -773,18 +742,21 @@ public class MkdownParser {
             }
         }
         if nextLine.type == .html {
-            startText = startLine
+            mdin.setIndex(.startText, to: .startLine)
         }
         
         // If the line ends with a backslash, treat this like a line break.
         if nextLine.type != .code && nextLine.endsWithBackSlash {
-            endText = mkdown.index(before: endText)
+            mdin.indexBefore(.endText)
             nextLine.trailingSpaceCount = 2
         }
 
         // Capture the text portion of the line, if it has any.
-        if nextLine.type.hasText && endText > startText {
-            nextLine.text = String(mkdown[startText..<endText])
+        if nextLine.type.hasText {
+            let text = mdin.getText()
+            if !text.isEmpty {
+                nextLine.text = text
+            }
         }
         
         if nextLine.type.textMayContinue && nextLine.trailingSpaceCount == 0 {
@@ -854,8 +826,6 @@ public class MkdownParser {
             lastLine = nextLine
             lastNonBlankLine = nextLine
         }
-        
-        // nextLine.display()
 
     }
         
@@ -869,49 +839,89 @@ public class MkdownParser {
         let closed = (mathBlockStartSaved == "$$" && mathBlockEnd == "$$")
                 || (mathBlockStartSaved == "\\\\[" && mathBlockEnd == "\\\\]")
         if closed {
-            endText = endMath
+            mdin.setIndex(.endText, to: .endMath)
         }
         return closed
     }
     
+    /// Performed as part of Finish Line processing.
     func checkForCommandClosing() -> Bool {
+
         var prefix = ""
         var prefixComplete = false
         var command = ""
         var commandComplete = false
+        var includeStyle = ""
+        var styleComplete = false
+        var mods = ""
+        var modsComplete = false
         var suffix = ""
         var digit1: Character = " "
         var digit2: Character = " "
         for char in nextLine.line {
-            if char.isLetter {
-                prefixComplete = true
-                command.append(char.lowercased())
-            } else if char == "}" || char == "]" {
-                prefixComplete = true
-                commandComplete = true
-                suffix.append(char)
-            } else if char.isWhitespace {
-                // We attach no significance to spaces or tabs
-            } else if !prefixComplete {
-                prefix.append(char)
-            } else if prefixComplete && char == ":" {
-                // The colon doesn't really need to go anywhere
-            } else if prefixComplete && char == "-" {
-                // The dash separating the two digits does not really carry any significance
-            } else if commandComplete {
-                suffix.append(char)
-            } else if char.isNumber && digit1 != " " {
-                digit2 = char
-            } else if char.isNumber {
-                digit1 = char
-            } else {
-                command.append(char.lowercased())
+            
+            if !prefixComplete {
+                if char == "[" || char == "{" || char == ":" {
+                    prefix.append(char)
+                } else {
+                    prefixComplete = true
+                }
             }
+            
+            if prefixComplete && !commandComplete {
+                if char == "]" || char == "}" {
+                    commandComplete = true
+                    styleComplete = true
+                    modsComplete = true
+                } else if char == ":" {
+                    commandComplete = true
+                    styleComplete = true
+                } else if char == "-" && command == "include" {
+                    commandComplete = true
+                } else if !char.isWhitespace && char != "-" {
+                    command.append(char.lowercased())
+                }
+            }
+            
+            if prefixComplete && commandComplete && !styleComplete {
+                if char == "]" || char == "}" {
+                    styleComplete = true
+                    modsComplete = true
+                } else if char == ":" {
+                    styleComplete = true
+                } else if !char.isWhitespace && char != "-" {
+                    includeStyle.append(char.lowercased())
+                }
+            }
+            
+            if prefixComplete && commandComplete && styleComplete && !modsComplete {
+                if char == ":" {
+                    // do nothing
+                } else if char == "]" || char == "}" {
+                    modsComplete = true
+                } else {
+                    mods.append(char)
+                    if char == "-" {
+                        // do nothing
+                    } else if char.isNumber && digit1 != " " {
+                        digit2 = char
+                    } else if char.isNumber {
+                        digit1 = char
+                    }
+                }
+            }
+            
+            if prefixComplete && commandComplete && styleComplete && modsComplete {
+                if !char.isWhitespace {
+                    suffix.append(char)
+                }
+            }
+            
         } // end of chars in line
         
         // See if we have a good prefix and a matching suffix.
         guard (prefix == "{:" && suffix == "}")
-                || prefix == "[[" && suffix == "]]"
+                || (prefix == "[[" && suffix == "]]")
                 || (prefix == "[" && suffix == "]")
                 || (prefix == "{{" && suffix == "}}") else {
             return false
@@ -938,6 +948,12 @@ public class MkdownParser {
             return true
         case "tagsoutline":
             nextLine.type = .tagsOutline
+            return true
+        case "include":
+            nextLine.type = .include
+            if mkdownContext != nil {
+                textToInclude = mkdownContext!.mkdownInclude(item: mods, style: includeStyle)
+            }
             return true
         default:
             return false
@@ -1194,9 +1210,6 @@ public class MkdownParser {
             
             let line = possibleLine!
             
-            // Useful for debugging:
-            // line.display()
-            
             if !line.followOn {
                 // Close any outstanding blocks that are no longer in effect.
                 var startToClose = 0
@@ -1307,6 +1320,8 @@ public class MkdownParser {
             case .footnoteDef:
                 break
             case .tableOfContents:
+                break
+            case .include:
                 break
             }
             
