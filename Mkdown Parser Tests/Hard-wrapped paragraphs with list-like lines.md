@@ -2,7 +2,7 @@ Title:  Hard-wrapped paragraphs with list-like lines
 
 Seq:    5.4
 
-Body: 
+Code: 
 
 In Markdown 1.0.0 and earlier. Version
 8. This line turns into a list item.
@@ -13,3 +13,13 @@ list item.
 Here's one with a bullet.
 * criminey.
 
+Body: 
+
+In Markdown 1.0.0 and earlier. Version
+8. This line turns into a list item.
+Because a hard-wrapped line in the
+middle of a paragraph looked like a
+list item.
+
+Here's one with a bullet.
+* criminey.

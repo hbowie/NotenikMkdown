@@ -15,6 +15,9 @@ import Foundation
 /// A protocol for looking up a title and transforming it to a different value.
 public protocol MkdownContext {
     
+    /// Set the Title of the Note whose Markdown text is to be parsed.
+    func setTitleToParse(title: String)
+    
     /// Given the title of one Note, return the (possibly renamed) title to be used. 
     func mkdownWikiLinkLookup(linkText: String) -> String?
     
