@@ -105,6 +105,12 @@ class MkdownBlockStack: Equatable {
         }
     }
     
+    func addTableTag() {
+        if last.tag != "table" {
+            append("table")
+        }
+    }
+    
     func removeParaTag() {
         guard blocks.count > 0 else { return }
         if last.tag == "p" {

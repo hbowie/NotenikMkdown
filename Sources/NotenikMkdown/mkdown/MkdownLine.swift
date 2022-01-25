@@ -3,7 +3,7 @@
 //  NotenikMkdown
 //
 //  Created by Herb Bowie on 2/25/20.
-//  Copyright © 2020 - 2021 Herb Bowie (https://hbowie.net)
+//  Copyright © 2020 - 2022 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -37,6 +37,13 @@ class MkdownLine {
     var leadingBulletAndSpace = false
     
     var leadingColonAndSpace = false
+    
+    var leadingPipe = false
+    var pipeCount = 0
+    var dashCount = 0
+    var onlyTableDelimChars = false
+    
+    var columnStyles: [String] = []
     
     var tocLevelStart: Character = " "
     var tocLevelEnd: Character = "9"
@@ -427,6 +434,13 @@ class MkdownLine {
         return continueList
     }
     
+    func makeTableLine(requestedType: MkdownLineType, columnStyles: [String]) {
+        type = requestedType
+        blocks.removeParaTag()
+        blocks.addTableTag()
+        self.columnStyles = columnStyles
+    }
+    
     func addParagraph() {
         blocks.addParaTag()
     }
@@ -472,8 +486,17 @@ class MkdownLine {
         if finishMathBlock {
             print("Finish Math Block")
         }
+        if leadingPipe {
+            print("Leading Pipe Char, Pipe Count = \(pipeCount), Only Table Delim Chars? \(onlyTableDelimChars)")
+        }
         print("Text: '\(text)'")
         print("List Pointers Count: \(blocks.listPointers.count)")
+        if columnStyles.count > 0 {
+            print("Column Styles")
+            for style in columnStyles {
+                print("  - \(style)")
+            }
+        }
         blocks.display()
     }
 }

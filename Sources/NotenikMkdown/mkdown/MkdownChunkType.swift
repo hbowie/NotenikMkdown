@@ -3,7 +3,7 @@
 //  Notenik
 //
 //  Created by Herb Bowie on 3/3/20.
-//  Copyright © 2020 Herb Bowie (https://hbowie.net)
+//  Copyright © 2020 - 2022 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -104,4 +104,13 @@ enum MkdownChunkType {
     case startMath
     case endMath
     case skipMath
+    
+    case tableHeaderPipe
+    case headerColumnStart
+    case headerColumnFinish
+    case headerColumnFinishAndStart
+    case tableDataPipe
+    case dataColumnStart
+    case dataColumnFinish
+    case dataColumnFinishAndStart
 }

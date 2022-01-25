@@ -32,6 +32,9 @@ enum MkdownLineType {
     case math
     case orderedItem
     case ordinaryText
+    case tableHeader
+    case tableDelims
+    case tableData
     case tableOfContents
     case tagsOutline
     case tocForCollection

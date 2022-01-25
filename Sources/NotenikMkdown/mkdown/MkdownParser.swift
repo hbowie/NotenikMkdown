@@ -102,6 +102,10 @@ public class MkdownParser {
         return mathBlockStart == "$$" || mathBlockStart == "\\\\["
     }
     
+    var tableStarted = false
+    var columnStyles: [String] = []
+    var columnIndex = 0
+    
     public var counts = MkdownCounts()
     
     
@@ -249,7 +253,22 @@ public class MkdownParser {
                         goodTag = true
                     }
                 }
-            } 
+            }
+            
+            // Check for table lines. 
+            if nextLine.leadingPipe {
+                if char == "|" {
+                    nextLine.pipeCount += 1
+                } else if char == "-" {
+                    nextLine.dashCount += 1
+                } else if char == ":" {
+                    //
+                } else if char.isWhitespace {
+                    //
+                } else {
+                    nextLine.onlyTableDelimChars = false
+                }
+            }
             
             // Check the beginning of the line for significant characters.
             if phase == .leadingPunctuation {
@@ -422,6 +441,11 @@ public class MkdownParser {
                         leadingColon = true
                         mdin.setIndex(.startColon, to: .last)
                         continue
+                    } else if char == "|" {
+                        nextLine.leadingPipe = true
+                        nextLine.pipeCount = 1
+                        nextLine.onlyTableDelimChars = true
+                        phase = .text
                     } else if char.isNumber {
                         if following &&
                             (!followingType.isNumberedItem) {
@@ -713,6 +737,23 @@ public class MkdownParser {
                 withinCitation = false
                 withinFootnote = false
             }
+        } else if tableStarted {
+            if (nextLine.type == .ordinaryText || nextLine.type == .followOn) && nextLine.leadingPipe {
+                nextLine.makeTableLine(requestedType: .tableData, columnStyles: columnStyles)
+            } else {
+                tableStarted = false
+            }
+        } else if nextLine.leadingPipe
+                    && nextLine.onlyTableDelimChars
+                    && nextLine.pipeCount > 1
+                    && nextLine.dashCount >= ((nextLine.pipeCount - 1) * 3)
+                    && lastLine.leadingPipe
+                    && lastLine.pipeCount >= nextLine.pipeCount
+                    && lastLine.type == .ordinaryText {
+            checkColumnAlignment()
+            lastLine.makeTableLine(requestedType: .tableHeader, columnStyles: columnStyles)
+            nextLine.makeTableLine(requestedType: .tableDelims, columnStyles: columnStyles)
+            tableStarted = true
         } else if nextLine.line.hasPrefix("{{")
                     || nextLine.line.hasPrefix("[")
                     || nextLine.line.hasPrefix("{:") {
@@ -827,6 +868,54 @@ public class MkdownParser {
             lastNonBlankLine = nextLine
         }
 
+    }
+    
+    func checkColumnAlignment() {
+        columnStyles = []
+        var columnIndex = -1
+        var dashCount = 0
+        var leadingColon = false
+        var trailingColon = false
+        for char in nextLine.line {
+            if char == "|" {
+                genColumnStyle(columnIndex: columnIndex,
+                               dashCount: dashCount,
+                               leadingColon: leadingColon,
+                               trailingColon: trailingColon)
+                columnIndex += 1
+                dashCount = 0
+                leadingColon = false
+                trailingColon = false
+            } else if char == "-" {
+                dashCount += 1
+            } else if char == ":" {
+                if dashCount == 0 {
+                    leadingColon = true
+                } else {
+                    trailingColon = true
+                }
+            }
+        }
+        genColumnStyle(columnIndex: columnIndex,
+                       dashCount: dashCount,
+                       leadingColon: leadingColon,
+                       trailingColon: trailingColon)
+    }
+    
+    func genColumnStyle(columnIndex: Int, dashCount: Int, leadingColon: Bool, trailingColon: Bool) {
+        guard columnIndex >= 0 else { return }
+        guard dashCount >= 3 else { return }
+        guard leadingColon || trailingColon else { return }
+        while columnStyles.count < columnIndex {
+            columnStyles.append("")
+        }
+        if leadingColon && trailingColon {
+            columnStyles.append("text-align:center;")
+        } else if leadingColon {
+            columnStyles.append("text-align:left;")
+        } else {
+            columnStyles.append("text-align:right;")
+        }
     }
         
     /// See if the current line ends a math block.
@@ -1277,6 +1366,20 @@ public class MkdownParser {
                 textToChunks(line)
             case .followOn:
                 textToChunks(line)
+            case .tableHeader:
+                writer.startTableRow()
+                columnStyles = line.columnStyles
+                columnIndex = 0
+                chunkAndWrite(line)
+                writer.finishTableRow()
+            case .tableDelims:
+                break
+            case .tableData:
+                writer.startTableRow()
+                columnStyles = line.columnStyles
+                columnIndex = 0
+                chunkAndWrite(line)
+                writer.finishTableRow()
             case .index:
                 if mkdownContext != nil {
                     writer.writeLine(mkdownContext!.mkdownIndex())
@@ -1689,6 +1792,8 @@ public class MkdownParser {
             writer.startParagraph()
         case "pre":
             writer.startPreformatted()
+        case "table":
+            writer.startTable()
         case "ul":
             writer.startUnorderedList(klass: nil)
         default:
@@ -1740,6 +1845,8 @@ public class MkdownParser {
             writer.finishParagraph()
         case "pre":
             writer.finishPreformatted()
+        case "table":
+            writer.finishTable()
         case "ul":
             writer.finishUnorderedList()
         default:
@@ -1838,6 +1945,16 @@ public class MkdownParser {
                     addCharAsChunk(char: char, type: .ampersand, lastChar: lastChar, line: line)
                 case "!":
                     addCharAsChunk(char: char, type: .exclamationMark, lastChar: lastChar, line: line)
+                case "|":
+                    if line.type == .tableHeader {
+                        addCharAsChunk(char: char, type: .tableHeaderPipe, lastChar: lastChar, line: line)
+                    } else if line.type == .tableData {
+                        addCharAsChunk(char: char, type: .tableDataPipe, lastChar: lastChar, line: line)
+                    } else {
+                        appendToNextChunk(char: char, lastChar: lastChar, line: line)
+                        nextChunk.textCount += 1
+                        anotherWord = true
+                    }
                 case "-", ".":
                     bufferRepeatingCharacters(char: char, lastChar: lastChar, line: line)
                 case " ":
@@ -2089,6 +2206,12 @@ public class MkdownParser {
                 if chunk.type == .startMath {
                     withinMathSpan = true
                 }
+            case .tableHeaderPipe, .tableDataPipe:
+                if chunk.lineType == .code { break }
+                if withinCodeSpan { break }
+                if withinMathSpan { break }
+                if withinTag { break }
+                scanForTableElements(forChunkAt: index)
             case .startMath:
                 withinMathSpan = true
             case .endMath:
@@ -2105,6 +2228,46 @@ public class MkdownParser {
                 break
             }
             index += 1
+        }
+    }
+    
+    /// See if this pipe starts and/or ends a column.
+    func scanForTableElements(forChunkAt: Int) {
+        let firstChunk = chunks[forChunkAt]
+        
+        if forChunkAt == 0 {
+            if firstChunk.type == .tableHeaderPipe {
+                firstChunk.type = .headerColumnStart
+            } else if firstChunk.type == .tableDataPipe {
+                firstChunk.type = .dataColumnStart
+            }
+            return
+        }
+        
+        var moreToTheRow = false
+        
+        var next = forChunkAt + 1
+        
+        while !moreToTheRow && next < chunks.count {
+            nextChunk = chunks[next]
+            if nextChunk.type != .plaintext || !StringUtils.trim(nextChunk.text).isEmpty {
+                moreToTheRow = true
+            }
+            next += 1
+        }
+        
+        if moreToTheRow {
+            if firstChunk.type == .tableHeaderPipe {
+                firstChunk.type = .headerColumnFinishAndStart
+            } else {
+                firstChunk.type = .dataColumnFinishAndStart
+            }
+        } else {
+            if firstChunk.type == .tableHeaderPipe {
+                firstChunk.type = .headerColumnFinish
+            } else {
+                firstChunk.type = .dataColumnFinish
+            }
         }
     }
     
@@ -2732,6 +2895,7 @@ public class MkdownParser {
         backslashed = false
         footnote = MkdownFootnote()
         citation = MkdownCitation()
+        var chunkIndex = 0
         for chunkToWrite in chunksToWrite {
             if chunkToWrite.type == .startCode {
                 withinCodeSpan = true
@@ -2742,12 +2906,13 @@ public class MkdownParser {
             } else if chunkToWrite.type == .endMath {
                 withinMathSpan = false
             }
-            write(chunk: chunkToWrite)
+            write(chunk: chunkToWrite, chunkIndex: chunkIndex, maxIndex: chunksToWrite.count - 1)
+            chunkIndex += 1
         }
     }
     
     /// Write out a single chunk.
-    func write(chunk: MkdownChunk) {
+    func write(chunk: MkdownChunk, chunkIndex: Int, maxIndex: Int) {
         
         // If we're in the middle of a link, then capture the text for its
         // various elements instead of writing anything out in the normal
@@ -2977,10 +3142,33 @@ public class MkdownParser {
                 writer.leftDoubleQuote()
             case .doubleCurlyQuoteClose:
                 writer.rightDoubleQuote()
+            case .headerColumnStart:
+                writer.startTableHeader(style: getColumnStyle(columnIndex: columnIndex))
+            case .headerColumnFinish:
+                writer.finishTableHeader()
+                columnIndex += 1
+            case .headerColumnFinishAndStart:
+                writer.finishTableHeader()
+                columnIndex += 1
+                writer.startTableHeader(style: getColumnStyle(columnIndex: columnIndex))
+            case .dataColumnStart:
+                writer.startTableData(style: getColumnStyle(columnIndex: columnIndex))
+            case .dataColumnFinish:
+                writer.finishTableData()
+                columnIndex += 1
+            case .dataColumnFinishAndStart:
+                writer.finishTableData()
+                columnIndex += 1
+                writer.startTableData(style: getColumnStyle(columnIndex: columnIndex))
             default:
                 writer.append(chunk.text)
             }
         }
+    }
+    
+    func getColumnStyle(columnIndex: Int) -> String {
+        guard columnIndex >= 0 && columnIndex < columnStyles.count else { return "" }
+        return columnStyles[columnIndex]
     }
     
     /// Increment for each new footnote reference found in text.
