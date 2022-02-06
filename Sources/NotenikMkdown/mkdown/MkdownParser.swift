@@ -351,9 +351,7 @@ public class MkdownParser {
                         charFollowingHashMarks = char
                         phase = .text
                     }
-                } else if codeFenced
-                            // && char.isWhitespace
-                {
+                } else if codeFenced {
                     phase = .text
                     nextLine.textFound = true
                 } else if mathBlockStart.count > 0 {
@@ -385,10 +383,12 @@ public class MkdownParser {
                     if persevere {
                         mathBlockStart.append(char)
                         mdin.setIndex(.startMath, to: .next)
+                        mdin.setIndex(.endMath, to: .next)
                         continue
                     } else if done {
                         mathBlockStart.append(char)
                         mdin.setIndex(.startMath, to: .next)
+                        mdin.setIndex(.endMath, to: .next)
                         phase = .text
                         continue
                     } else if abort {
@@ -634,7 +634,7 @@ public class MkdownParser {
     func finishLine() {
         
         counts.lines += 1
-        
+               
         // Capture the entire line for later processing.
         nextLine.line = mdin.getLine()
         
@@ -1302,12 +1302,14 @@ public class MkdownParser {
             if !line.followOn {
                 // Close any outstanding blocks that are no longer in effect.
                 var startToClose = 0
-                while startToClose < openBlocks.count {
-                    guard startToClose < line.blocks.count else { break }
-                    if openBlocks.blocks[startToClose] != line.blocks.blocks[startToClose] {
-                        break
+                if !line.startMathBlock {
+                    while startToClose < openBlocks.count {
+                        guard startToClose < line.blocks.count else { break }
+                        if openBlocks.blocks[startToClose] != line.blocks.blocks[startToClose] {
+                            break
+                        }
+                        startToClose += 1
                     }
-                    startToClose += 1
                 }
                 
                 closeBlocks(from: startToClose)

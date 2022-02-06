@@ -165,6 +165,10 @@ public class MkdownInput {
         return getString(from: .startText, to: .endText)
     }
     
+    public func getMath() -> String {
+        return getString(from: .startMath, to: .endMath)
+    }
+    
     public func getString(from: MkdownInputPosition, to: MkdownInputPosition) -> String {
         let fromIndex = indices[from.rawValue]
         let toIndex   = indices[to.rawValue]

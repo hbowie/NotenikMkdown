@@ -95,6 +95,10 @@ public class MkdownInputStack {
         return mkdownInput.getText()
     }
     
+    public func getMath() -> String {
+        return mkdownInput.getMath()
+    }
+    
     public func getString(from: MkdownInput.MkdownInputPosition,
                           to: MkdownInput.MkdownInputPosition) -> String {
         return mkdownInput.getString(from: from, to: to)
