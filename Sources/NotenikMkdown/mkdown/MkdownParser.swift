@@ -1302,14 +1302,15 @@ public class MkdownParser {
             if !line.followOn {
                 // Close any outstanding blocks that are no longer in effect.
                 var startToClose = 0
-                if !line.startMathBlock {
-                    while startToClose < openBlocks.count {
-                        guard startToClose < line.blocks.count else { break }
-                        if openBlocks.blocks[startToClose] != line.blocks.blocks[startToClose] {
-                            break
-                        }
-                        startToClose += 1
+                while startToClose < openBlocks.count {
+                    guard startToClose < line.blocks.count else { break }
+                    if openBlocks.blocks[startToClose] != line.blocks.blocks[startToClose] {
+                        break
                     }
+                    if openBlocks.blocks[startToClose].isParagraph && line.startMathBlock {
+                        break
+                    }
+                    startToClose += 1
                 }
                 
                 closeBlocks(from: startToClose)

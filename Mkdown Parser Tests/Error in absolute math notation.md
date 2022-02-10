@@ -1,6 +1,6 @@
 Title:  Error in absolute math notation
 
-Seq:    255
+Seq:    256
 
 Code: 
 

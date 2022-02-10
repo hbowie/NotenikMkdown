@@ -1,6 +1,6 @@
 Title:  MathJax - Odd Bug
 
-Seq:    254
+Seq:    255
 
 Body: 
 
