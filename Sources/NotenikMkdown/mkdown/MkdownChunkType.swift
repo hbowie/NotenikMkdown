@@ -113,4 +113,9 @@ enum MkdownChunkType {
     case dataColumnStart
     case dataColumnFinish
     case dataColumnFinishAndStart
+    
+    case startCheckBox
+    case checkBoxContent
+    case endCheckBoxChecked
+    case endCheckBoxUnchecked
 }

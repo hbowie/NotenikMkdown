@@ -8,15 +8,21 @@ Sort Descending: false
 
 Other Fields Allowed: false
 
-Last Index Selected: 57
+Last Index Selected: 88
 
 Mirror Auto Index: false
 
 Display Body Label: true
 
-Display H1 Titles: false
+Title Display Option: p bold
 
 Streamlined Reading: false
 
 MathJax: true
+
+Local Images: false
+
+Missing Targets: false
+
+Window Numbers: 62.0;0.0;1423.0;1415.0;500.0;
 

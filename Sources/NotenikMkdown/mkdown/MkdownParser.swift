@@ -309,6 +309,9 @@ public class MkdownParser {
                     if char.isWhitespace {
                         continue
                     } else {
+                        if char == "[" {
+                            nextLine.checkBox.append(char)
+                        }
                         phase = .text
                     }
                 } else if leadingBullet {
@@ -499,6 +502,25 @@ public class MkdownParser {
                 if !nextLine.textFound {
                     nextLine.textFound = true
                     mdin.setIndex(.startText, to: .last)
+                }
+                if nextLine.type == .unorderedItem && !nextLine.checkBox.isEmpty {
+                    if nextLine.checkBox.count == 3 {
+                        // it's a done deal
+                    } else if char == "[" && nextLine.checkBox.count == 1 {
+                        // Just skip it
+                    } else if char.lowercased() == "x" && nextLine.checkBox.count == 1 {
+                        nextLine.checkBox.append("x")
+                    } else if char.isWhitespace && nextLine.checkBox.count == 1 {
+                        nextLine.checkBox.append(" ")
+                    } else if char.isWhitespace && nextLine.checkBox.count == 2 {
+                        // just ignore extra white space
+                    } else if char == "]" && nextLine.checkBox.count == 1 {
+                        nextLine.checkBox.append(" ]")
+                    } else if char == "]" && nextLine.checkBox.count == 2 {
+                        nextLine.checkBox.append(char)
+                    } else {
+                        nextLine.checkBox = ""
+                    }
                 }
                 if char == " " {
                     nextLine.trailingSpaceCount += 1
@@ -1330,7 +1352,8 @@ public class MkdownParser {
                               footnoteItem: blockToOpen.footnoteItem,
                               citationItem: blockToOpen.citationItem,
                               itemNumber: blockToOpen.itemNumber,
-                              text: line.text)
+                              text: line.text,
+                              checkBox: line.checkBox)
                     openBlocks.append(blockToOpen)
                     blockToOpenIndex += 1
                 }
@@ -1340,7 +1363,12 @@ public class MkdownParser {
                     let listBlock = openBlocks.blocks[listIndex]
                     if listBlock.isListTag && listBlock.listWithParagraphs {
                         let paraBlock = MkdownBlock("p")
-                        openBlock(paraBlock.tag, footnoteItem: false, citationItem: false, itemNumber: 0, text: "")
+                        openBlock(paraBlock.tag,
+                                  footnoteItem: false,
+                                  citationItem: false,
+                                  itemNumber: 0,
+                                  text: "",
+                                  checkBox: line.checkBox)
                         openBlocks.append(paraBlock)
                     }
                 }
@@ -1752,7 +1780,12 @@ public class MkdownParser {
     }
     
     /// Start writing an HTML block.
-    func openBlock(_ tag: String, footnoteItem: Bool, citationItem: Bool, itemNumber: Int, text: String) {
+    func openBlock(_ tag: String,
+                   footnoteItem: Bool,
+                   citationItem: Bool,
+                   itemNumber: Int,
+                   text: String,
+                   checkBox: String) {
         outputUnwrittenChunks()
         switch tag {
         case "blockquote":
@@ -1798,7 +1831,11 @@ public class MkdownParser {
         case "table":
             writer.startTable()
         case "ul":
-            writer.startUnorderedList(klass: nil)
+            if checkBox.count == 3 {
+                writer.startUnorderedList(klass: "checklist")
+            } else {
+                writer.startUnorderedList(klass: nil)
+            }
         default:
             print("Don't know how to open tag of \(tag)")
         }
@@ -2165,6 +2202,7 @@ public class MkdownParser {
                 if withinMathSpan { break }
                 if withinTag { break }
                 scanForLinkElements(forChunkAt: index)
+                scanForCheckBox(forChunkAt: index)
             case .backtickQuote:
                 scanForCodeClosure(forChunkAt: index)
                 if chunk.type == .startCode {
@@ -2868,6 +2906,50 @@ public class MkdownParser {
         }
     }
     
+    /// If we have a left square bracket, scan for other punctuation related to a link.
+    func scanForCheckBox(forChunkAt: Int) {
+   
+        let leftBracket = chunks[forChunkAt]
+        guard leftBracket.type == .leftSquareBracket else { return }
+        guard forChunkAt == 0 else { return }
+        var onOrOff: MkdownChunk?
+        var rightBracket: MkdownChunk?
+        var looking = true
+        var index = forChunkAt + 1
+        while looking && index < chunks.count {
+            let chunk = chunks[index]
+            switch chunk.type {
+            case .rightSquareBracket:
+                rightBracket = chunk
+                looking = false
+            case .plaintext:
+                if chunk.text.lowercased() == "x" || chunk.text == " " {
+                    onOrOff = chunk
+                } else {
+                    looking = false
+                }
+            default:
+                looking = false
+            }
+            index += 1
+        }
+        
+        guard !looking else { return }
+        guard rightBracket != nil else { return }
+        
+        leftBracket.type = .startCheckBox
+        if onOrOff == nil {
+            rightBracket!.type = .endCheckBoxUnchecked
+        } else if onOrOff!.text.lowercased() == "x" {
+            rightBracket!.type = .endCheckBoxChecked
+            onOrOff!.type = .checkBoxContent
+        } else {
+            rightBracket!.type = .endCheckBoxUnchecked
+            onOrOff!.type = .checkBoxContent
+        }
+    }
+    
+    
     // ===========================================================
     //
     // Section 2.c - Send the chunks to the writer.
@@ -3163,6 +3245,14 @@ public class MkdownParser {
                 writer.finishTableData()
                 columnIndex += 1
                 writer.startTableData(style: getColumnStyle(columnIndex: columnIndex))
+            case .startCheckBox:
+                break
+            case .checkBoxContent:
+                break
+            case .endCheckBoxChecked:
+                writer.write("&#9745; ")
+            case .endCheckBoxUnchecked:
+                writer.write("&#9744; ")
             default:
                 writer.append(chunk.text)
             }

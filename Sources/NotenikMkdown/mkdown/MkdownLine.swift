@@ -35,6 +35,10 @@ class MkdownLine {
     var onlyRepeatingAndSpaces = true
     
     var leadingBulletAndSpace = false
+    var checkBox = ""
+    var validCheckBox: Bool {
+        return checkBox.count == 3
+    }
     
     var leadingColonAndSpace = false
     
