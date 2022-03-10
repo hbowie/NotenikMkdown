@@ -1059,6 +1059,7 @@ public class MkdownParser {
             return true
         case "tagsoutline":
             nextLine.type = .tagsOutline
+            nextLine.commandMods = mods
             return true
         case "include":
             nextLine.type = .include
@@ -1417,7 +1418,7 @@ public class MkdownParser {
                 }
             case .tagsOutline:
                 if mkdownContext != nil {
-                    writer.writeLine(mkdownContext!.mkdownTagsOutline())
+                    writer.writeLine(mkdownContext!.mkdownTagsOutline(mods: line.commandMods))
                 }
             case .tocForCollection:
                 if mkdownContext != nil {

@@ -28,7 +28,7 @@ public protocol MkdownContext {
     func mkdownIndex() -> String
     
     /// Return a tags outline of the collection, formatted in HTML.
-    func mkdownTagsOutline() -> String
+    func mkdownTagsOutline(mods: String) -> String
     
     /// Include another Note, or an external file. 
     func mkdownInclude(item: String, style: String) -> String?

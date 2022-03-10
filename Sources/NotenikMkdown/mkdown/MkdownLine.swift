@@ -49,6 +49,8 @@ class MkdownLine {
     
     var columnStyles: [String] = []
     
+    var commandMods = ""
+    
     var tocLevelStart: Character = " "
     var tocLevelEnd: Character = "9"
     var tocLevelStartInt: Int {
@@ -67,6 +69,8 @@ class MkdownLine {
             return 999
         }
     }
+    
+    var tagsIncludeUntagged = true
     
     var headingUnderlining: Bool {
         return (onlyRepeating && repeatCount >= 2 &&
