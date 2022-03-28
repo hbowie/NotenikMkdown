@@ -272,6 +272,7 @@ public class MkdownParser {
             
             // Check the beginning of the line for significant characters.
             if phase == .leadingPunctuation {
+                // mdin.setIndex(.endText, to: .next)
                 if openHTMLblock {
                     phase = .text
                     nextLine.makeHTML()
@@ -812,6 +813,13 @@ public class MkdownParser {
         if nextLine.type != .code && nextLine.endsWithBackSlash {
             mdin.indexBefore(.endText)
             nextLine.trailingSpaceCount = 2
+        }
+        
+        if phase == .leadingPunctuation && leadingNumber && nextLine.type == .blank {
+            nextLine.textFound = true
+            nextLine.makeOrdinary()
+            mdin.setIndex(.startText, to: .startNumber)
+            mdin.setIndex(.endText, to: .last)
         }
 
         // Capture the text portion of the line, if it has any.
