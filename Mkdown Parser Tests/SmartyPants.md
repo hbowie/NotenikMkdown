@@ -2,11 +2,13 @@ Title:  SmartyPants
 
 Seq:    15
 
-Body: 
+Body:
 
 Let's see single dashes - en dashes -- and em dashes —.
 
 And let's put things in 'single quotes'.
+
+And now let's try an apostrophe. 
 
 And now let's put things in "double quotes."
 

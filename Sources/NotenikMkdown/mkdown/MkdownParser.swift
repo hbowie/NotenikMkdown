@@ -3087,6 +3087,12 @@ public class MkdownParser {
             switch chunk.type {
             case .ampersand:
                 writer.writeAmpersand()
+            case .apostrophe:
+                if options.curlyApostrophes {
+                    writer.writeEndingSingleQuote()
+                } else {
+                    writer.writeApostrophe()
+                }
             case .backSlash:
                 if withinCodeSpan || withinMathSpan {
                     writer.write("\\")
