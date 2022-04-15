@@ -30,6 +30,9 @@ public protocol MkdownContext {
     /// Return a tags outline of the collection, formatted in HTML.
     func mkdownTagsOutline(mods: String) -> String
     
+    /// Return a tags cloud of the collection, formatted in HTML.
+    func mkdownTagsCloud(mods: String) -> String
+    
     /// Include another Note, or an external file. 
     func mkdownInclude(item: String, style: String) -> String?
     

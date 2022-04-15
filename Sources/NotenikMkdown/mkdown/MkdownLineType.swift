@@ -36,6 +36,7 @@ enum MkdownLineType {
     case tableDelims
     case tableData
     case tableOfContents
+    case tagsCloud
     case tagsOutline
     case tocForCollection
     case unorderedItem

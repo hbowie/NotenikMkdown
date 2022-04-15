@@ -1065,6 +1065,10 @@ public class MkdownParser {
         case "index":
             nextLine.type = .index
             return true
+        case "tagscloud":
+            nextLine.type = .tagsCloud
+            nextLine.commandMods = mods
+            return true
         case "tagsoutline":
             nextLine.type = .tagsOutline
             nextLine.commandMods = mods
@@ -1423,6 +1427,10 @@ public class MkdownParser {
             case .index:
                 if mkdownContext != nil {
                     writer.writeLine(mkdownContext!.mkdownIndex())
+                }
+            case .tagsCloud:
+                if mkdownContext != nil {
+                    writer.writeLine(mkdownContext!.mkdownTagsCloud(mods: line.commandMods))
                 }
             case .tagsOutline:
                 if mkdownContext != nil {
