@@ -39,14 +39,14 @@ public class MkdownOptions {
         }
         
         var script = ""
-        script.append("<script> \n")
+        script.append("<script type=\"text/javascript\"> \n")
         script.append("window.MathJax = { \n")
         script.append("    tex: { \n")
         script.append("      tags: 'ams' \n")
         script.append("    } \n")
         script.append("  }; \n")
         script.append("</script> \n")
-        script.append("<script id=\"MathJax-script\" async src=\"\(mjUrlString)\"> \n")
+        script.append("<script type=\"text/javascript\" id=\"MathJax-script\" async src=\"\(mjUrlString)\"> \n")
         script.append("</script>")
         return script
     }
