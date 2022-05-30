@@ -30,6 +30,9 @@ public protocol MkdownContext {
     /// Return a tags outline of the collection, formatted in HTML.
     func mkdownTagsOutline(mods: String) -> String
     
+    /// Return a list of children, with teasers formatted in HTML. 
+    func mkdownTeasers() -> String
+    
     /// Return a tags cloud of the collection, formatted in HTML.
     func mkdownTagsCloud(mods: String) -> String
     

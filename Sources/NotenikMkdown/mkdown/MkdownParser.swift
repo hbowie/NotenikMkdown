@@ -1079,6 +1079,9 @@ public class MkdownParser {
                 textToInclude = mkdownContext!.mkdownInclude(item: mods, style: includeStyle)
             }
             return true
+        case "teasers":
+            nextLine.type = .teasers
+            return true
         default:
             return false
         }
@@ -1435,6 +1438,10 @@ public class MkdownParser {
             case .tagsOutline:
                 if mkdownContext != nil {
                     writer.writeLine(mkdownContext!.mkdownTagsOutline(mods: line.commandMods))
+                }
+            case .teasers:
+                if mkdownContext != nil {
+                    writer.writeLine(mkdownContext!.mkdownTeasers())
                 }
             case .tocForCollection:
                 if mkdownContext != nil {
