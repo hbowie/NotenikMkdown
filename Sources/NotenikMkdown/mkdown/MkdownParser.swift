@@ -108,13 +108,11 @@ public class MkdownParser {
     
     public var counts = MkdownCounts()
     
-    
-    // ===========================================================
+    // -----------------------------------------------------------
     //
-    // Initialization.
+    // MARK: Initialization.
     //
-    // ===========================================================
-
+    // -----------------------------------------------------------
     
     /// Initialize with an empty string.
     public init() {
@@ -169,12 +167,12 @@ public class MkdownParser {
         linesOut()
     }
     
-    // ===========================================================
+    // -----------------------------------------------------------
     //
-    // Phase 1 - Parse the input block of Markdown text, and
+    // MARK: Phase 1 - Parse the input block of Markdown text, and
     // break down into lines.
     //
-    // ===========================================================
+    // -----------------------------------------------------------
     
     /// Make our first pass through the Markdown, identifying basic info about each line.
     func mdToLines() {
@@ -1183,23 +1181,24 @@ public class MkdownParser {
          }
      }
     
-    // ===========================================================
+    // -----------------------------------------------------------
     //
     // This is the data shared between Phase 1 and Phase 2.
     //
-    // ===========================================================
+    // -----------------------------------------------------------
     
     var linkDict: [String:RefLink] = [:]
     var footnotes: [MkdownFootnote] = []
     var citations: [MkdownCitation] = []
     var lines:    [MkdownLine] = []
     var tocFound = false
-
-    // ===========================================================
+    
+    // -----------------------------------------------------------
     //
-    // Phase 2 - Take the lines and convert them to HTML output.
+    // MARK: Phase 2 - Take the lines and convert them
+    //       to HTML output.
     //
-    // ===========================================================
+    // -----------------------------------------------------------
     
     var mainLineIndex = 0
     
@@ -1322,6 +1321,9 @@ public class MkdownParser {
         }
     }
     
+    var thisLineIsHTML = false
+    var lastLineWasHTML = false
+    
     /// Go through the Markdown lines, writing out HTML.
     func writeHTML() {
         writer = Markedup()
@@ -1331,11 +1333,16 @@ public class MkdownParser {
         mainLineIndex = 0
         tocLineIndex = 0
         
+        thisLineIsHTML = false
+        lastLineWasHTML = false
+        
         var possibleLine = getNextLine()
         
         while possibleLine != nil {
             
             let line = possibleLine!
+            
+            thisLineIsHTML = false
             
             if !line.followOn {
                 // Close any outstanding blocks that are no longer in effect.
@@ -1404,6 +1411,7 @@ public class MkdownParser {
             case .horizontalRule:
                 writer.horizontalRule()
             case .html:
+                thisLineIsHTML = true
                 writeHTMLLine(line)
             case .ordinaryText:
                 textToChunks(line)
@@ -1497,6 +1505,8 @@ public class MkdownParser {
                 }
             }
             
+            lastLineWasHTML = thisLineIsHTML
+            
             possibleLine = getNextLine()
             
         }
@@ -1567,6 +1577,11 @@ public class MkdownParser {
     /// - Parameter line: The line of HTML to be written.
     func writeHTMLLine(_ line: MkdownLine) {
         
+        if lastLineWasHTML {
+            writer.ensureNewLine()
+        } else {
+            writer.ensureBlankLine()
+        }
         guard mkdownContext != nil
                 && options.wikiLinkFormatting == .fileName
                 && options.interNoteDomain.count > 1 else {
@@ -1924,12 +1939,12 @@ public class MkdownParser {
         outputChunks()
     }
     
-    // ===========================================================
+    // -----------------------------------------------------------
     //
-    // Section 2.a - Go through the text in a block and break it
-    // up into chunks.
+    // MARK: Section 2.a - Go through the text in a block and
+    // break it up into chunks.
     //
-    // ===========================================================
+    // -----------------------------------------------------------
     
     /// Divide another line of Markdown into chunks.
     func textToChunks(_ line: MkdownLine) {
@@ -1940,7 +1955,8 @@ public class MkdownParser {
         if line.type == .followOn {
             nextChunk.startsWithSpace = true
             nextChunk.endsWithSpace = true
-            appendToNextChunk(str: " ", lastChar: " ", line: line)
+            // appendToNextChunk(str: " ", lastChar: " ", line: line)
+            appendToNextChunk(str: "", lastChar: " ", line: line)
         }
         for char in line.text {
             if backslashed {
@@ -2973,12 +2989,11 @@ public class MkdownParser {
         }
     }
     
-    
-    // ===========================================================
+    // -----------------------------------------------------------
     //
-    // Section 2.c - Send the chunks to the writer.
+    // MARK: Section 2.c - Send the chunks to the writer.
     //
-    // ===========================================================
+    // -----------------------------------------------------------
     
     var imageNotLink = false
     var linkTextChunks: [MkdownChunk] = []
