@@ -3415,18 +3415,22 @@ public class MkdownParser {
     
     func finishLink() {
         
+        var skipLink = false
+        
         // If this is a wiki style link, then format the URL from the text.
         if doubleBrackets {
             linkURL = assembleWikiLink(title: linkText)
         }
 
         // If this is a reference style link, then let's look it up in the dictionary.
-        if linkURL.count == 0 {
+        if linkURL.isEmpty {
             if linkLabel.count == 0 {
                 linkLabel = linkText.lowercased()
             }
             let refLink = linkDict[linkLabel]
-            if refLink != nil {
+            if refLink == nil {
+                skipLink = true
+            } else {
                 linkURL = refLink!.link
                 linkTitle = refLink!.title
             }
@@ -3440,6 +3444,8 @@ public class MkdownParser {
         
         if imageNotLink {
             writer.image(alt: linkText, path: linkURL, title: linkTitle)
+        } else if skipLink {
+            writeChunks(chunksToWrite: linkTextChunks)
         } else {
             writer.startLink(path: linkURL, title: linkTitle)
             writeChunks(chunksToWrite: linkTextChunks)
