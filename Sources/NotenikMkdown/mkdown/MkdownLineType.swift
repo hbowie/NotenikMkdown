@@ -60,7 +60,7 @@ enum MkdownLineType {
     
     var textMayContinue: Bool {
         switch self {
-        case .orderedItem, .ordinaryText, .unorderedItem, .footnoteItem, .citationItem, .defDefinition:
+        case .orderedItem, .ordinaryText, .unorderedItem, .footnoteItem, .citationItem, .defDefinition, .followOn:
             return true
         default:
             return false
