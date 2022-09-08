@@ -20,9 +20,10 @@ public class WikiLinkList {
         
     }
     
-    public func addLink(fromTitle: String, targetFound: Bool, wikiLink: WikiLink) {
+    public func addLink(fromPath: String, fromTitle: String, targetFound: Bool, wikiLink: WikiLink) {
         let newLink = WikiLink()
-        newLink.fromTitle = fromTitle
+        let fromTarget = WikiLinkTarget(path: fromPath, item: fromTitle)
+        newLink.fromTarget = fromTarget
         newLink.originalTarget = wikiLink.originalTarget
         newLink.updatedTarget = wikiLink.updatedTarget
         newLink.targetFound = targetFound

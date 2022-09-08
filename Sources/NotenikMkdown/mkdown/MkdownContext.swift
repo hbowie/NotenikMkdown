@@ -19,7 +19,7 @@ public protocol MkdownContext {
     func setTitleToParse(title: String)
     
     /// Given the title of one Note, return the (possibly renamed) title to be used. 
-    func mkdownWikiLinkLookup(linkText: String) -> String?
+    func mkdownWikiLinkLookup(linkText: String) -> WikiLinkTarget?
     
     /// Return a Table of Contents for the Collection, formatted in HTML. 
     func mkdownCollectionTOC(levelStart: Int, levelEnd: Int) -> String

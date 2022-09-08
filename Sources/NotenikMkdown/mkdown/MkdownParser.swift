@@ -1243,7 +1243,6 @@ public class MkdownParser {
     /// Now that we have the input divided into lines, and the lines assigned types,
     /// let's generate the output HTML.
     func linesOut() {
-        
         if tocFound {
             genTableOfContents()
         }
@@ -1775,27 +1774,29 @@ public class MkdownParser {
         var citationIndex = 0
         while citationIndex < citations.count {
             let nextCitation = citations[citationIndex]
-            nextCitation.pruneTrailingBlankLines()
-            let citationLine = MkdownLine()
-            citationLine.makeCitationItem(cited: nextCitation.cited, previousLine: lastLine, previousNonBlankLine: lastNonBlankLine)
-            if nextCitation.text.count > 0 {
-                citationLine.text = nextCitation.text
-            } else {
-                citationLine.text = nextCitation.label
-            }
-            citationLine.line = nextCitation.inputLine
-            if nextCitation.lines.isEmpty {
-                citationLine.endOfCitation = true
-            }
-            addCitationLine(citationLine)
-            var lineCount = 0
-            for line in nextCitation.lines {
-                lineCount += 1
-                _ = line.continueFootnoteOrCitation(line: citationLine)
-                if lineCount >= nextCitation.lines.count {
-                    line.endOfCitation = true
+            if nextCitation.number > 0 {
+                nextCitation.pruneTrailingBlankLines()
+                let citationLine = MkdownLine()
+                citationLine.makeCitationItem(cited: nextCitation.cited, previousLine: lastLine, previousNonBlankLine: lastNonBlankLine)
+                if nextCitation.text.count > 0 {
+                    citationLine.text = nextCitation.text
+                } else {
+                    citationLine.text = nextCitation.label
                 }
-                addCitationLine(line)
+                citationLine.line = nextCitation.inputLine
+                if nextCitation.lines.isEmpty {
+                    citationLine.endOfCitation = true
+                }
+                addCitationLine(citationLine)
+                var lineCount = 0
+                for line in nextCitation.lines {
+                    lineCount += 1
+                    _ = line.continueFootnoteOrCitation(line: citationLine)
+                    if lineCount >= nextCitation.lines.count {
+                        line.endOfCitation = true
+                    }
+                    addCitationLine(line)
+                }
             }
             citationIndex += 1
         }
@@ -3448,7 +3449,12 @@ public class MkdownParser {
             writeChunks(chunksToWrite: linkTextChunks)
         } else {
             writer.startLink(path: linkURL, title: linkTitle)
-            writeChunks(chunksToWrite: linkTextChunks)
+            if linkTextChunks.count == 1 && linkTextChunks[0].type == .plaintext {
+                let (_, item) = StringUtils.splitPath(linkTextChunks[0].text)
+                writer.append(item)
+            } else {
+                writeChunks(chunksToWrite: linkTextChunks)
+            }
             writer.finishLink()
         }
         initLink()
@@ -3457,26 +3463,28 @@ public class MkdownParser {
     func assembleWikiLink(title: String) -> String {
 
         let wikiLink = WikiLink()
-        wikiLink.originalTarget = title
+        wikiLink.setOriginalTarget(title)
         if mkdownContext != nil {
-            let targetTitle = mkdownContext!.mkdownWikiLinkLookup(linkText: title)
-            if targetTitle == nil {
+            let lookedUp = mkdownContext!.mkdownWikiLinkLookup(linkText: title)
+            if lookedUp == nil {
                 wikiLink.targetFound = false
             } else {
-                wikiLink.updatedTarget = targetTitle!
+                wikiLink.updatedTarget = lookedUp!
                 wikiLink.targetFound = true
             }
             wikiLinkList.links.append(wikiLink)
         }
-        return options.wikiLinkPrefix + formatWikiLink(wikiLink.bestTarget) + options.wikiLinkSuffix
+        return options.wikiLinkPrefix
+            + wikiLink.bestTarget.formatWikiLink(format: options.wikiLinkFormatting)
+            + options.wikiLinkSuffix
     }
     
-    func formatWikiLink(_ title: String) -> String {
+    func formatWikiLink(_ target: WikiLinkTarget) -> String {
         switch options.wikiLinkFormatting {
         case .common:
-            return StringUtils.toCommon(title)
+            return target.pathSlashID
         case .fileName:
-            return StringUtils.toCommonFileName(title)
+            return target.pathSlashFilename
         }
     }
     
