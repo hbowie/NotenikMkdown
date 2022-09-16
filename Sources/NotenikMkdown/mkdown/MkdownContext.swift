@@ -27,6 +27,9 @@ public protocol MkdownContext {
     /// Return an index to the Collection, formatted in HTML.
     func mkdownIndex() -> String
     
+    /// Return a search page for the Collection, formatted in HTML.
+    func mkdownSearch(siteURL: String) -> String
+    
     /// Return a tags outline of the collection, formatted in HTML.
     func mkdownTagsOutline(mods: String) -> String
     

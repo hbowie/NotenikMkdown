@@ -1080,6 +1080,10 @@ public class MkdownParser {
         case "teasers":
             nextLine.type = .teasers
             return true
+        case "search":
+            nextLine.type = .search
+            nextLine.commandMods = mods
+            return true
         default:
             return false
         }
@@ -1437,6 +1441,10 @@ public class MkdownParser {
             case .index:
                 if mkdownContext != nil {
                     writer.writeLine(mkdownContext!.mkdownIndex())
+                }
+            case .search:
+                if mkdownContext != nil {
+                    writer.writeLine(mkdownContext!.mkdownSearch(siteURL: line.commandMods))
                 }
             case .tagsCloud:
                 if mkdownContext != nil {
