@@ -777,7 +777,8 @@ public class MkdownParser {
             tableStarted = true
         } else if nextLine.line.hasPrefix("{{")
                     || nextLine.line.hasPrefix("[")
-                    || nextLine.line.hasPrefix("{:") {
+                    || nextLine.line.hasPrefix("{:")
+                    || nextLine.line.hasPrefix("![[") {
             _ = checkForCommandClosing()
         }
         
@@ -978,10 +979,15 @@ public class MkdownParser {
         for char in nextLine.line {
             
             if !prefixComplete {
-                if char == "[" || char == "{" || char == ":" {
+                if char == "[" || char == "{" || char == ":" || char == "!" {
                     prefix.append(char)
                 } else {
                     prefixComplete = true
+                    if prefix == "![[" {
+                        command = "include"
+                        commandComplete = true
+                        styleComplete = true
+                    }
                 }
             }
             
@@ -1040,7 +1046,8 @@ public class MkdownParser {
         guard (prefix == "{:" && suffix == "}")
                 || (prefix == "[[" && suffix == "]]")
                 || (prefix == "[" && suffix == "]")
-                || (prefix == "{{" && suffix == "}}") else {
+                || (prefix == "{{" && suffix == "}}")
+                || (prefix == "![[" && suffix == "]]") else {
             return false
         }
         
@@ -2040,9 +2047,10 @@ public class MkdownParser {
                     } else if line.type == .tableData {
                         addCharAsChunk(char: char, type: .tableDataPipe, lastChar: lastChar, line: line)
                     } else {
-                        appendToNextChunk(char: char, lastChar: lastChar, line: line)
-                        nextChunk.textCount += 1
-                        anotherWord = true
+                        addCharAsChunk(char: char, type: .plainPipe, lastChar: lastChar, line: line)
+                        // appendToNextChunk(char: char, lastChar: lastChar, line: line)
+                        // nextChunk.textCount += 1
+                        // anotherWord = true
                     }
                 case "-", ".":
                     bufferRepeatingCharacters(char: char, lastChar: lastChar, line: line)
@@ -2787,6 +2795,7 @@ public class MkdownParser {
         var caret: MkdownChunk?
         var poundSign: MkdownChunk?
         var leftBracket2: MkdownChunk?
+        var titlePipe: MkdownChunk?
         var rightBracket1: MkdownChunk?
         var rightBracket2: MkdownChunk?
         var closingTextBracketIndex = -1
@@ -2835,6 +2844,10 @@ public class MkdownParser {
                     leftLabelBracketIndex = index
                 } else {
                     return
+                }
+            case .plainPipe:
+                if doubleBrackets && rightBracket1 == nil {
+                    titlePipe = chunk
                 }
             case .rightSquareBracket:
                 if rightBracket1 == nil {
@@ -2935,6 +2948,9 @@ public class MkdownParser {
             leftBracket2!.type = .startWikiLink2
             rightBracket1!.type = .endWikiLink1
             rightBracket2!.type = .endWikiLink2
+            if titlePipe != nil {
+                titlePipe!.type = .startWikiLinkTitle
+            }
         } else {
             if exclamationMark != nil {
                 exclamationMark!.type = .startImage
@@ -3056,6 +3072,10 @@ public class MkdownParser {
             case .text:
                 if chunk.type == .endLinkText || chunk.type == .endWikiLink1 {
                     linkElementDiverter = .na
+                } else if chunk.type == .startWikiLinkTitle {
+                    linkElementDiverter = .title
+                    linkTextChunks = []
+                    return
                 } else {
                     linkTextChunks.append(chunk)
                     linkText.append(chunk.text)
@@ -3069,8 +3089,11 @@ public class MkdownParser {
                     return
                 }
             case .title:
-                if chunk.type == .endTitle || chunk.type == .endLink {
+                if chunk.type == .endTitle || chunk.type == .endLink || chunk.type == .endWikiLink1 {
                     linkElementDiverter = .na
+                } else if doubleBrackets {
+                    linkTextChunks.append(chunk)
+                    return
                 } else {
                     linkTitle.append(chunk.text)
                     return
@@ -3220,6 +3243,7 @@ public class MkdownParser {
             case .startWikiLink2:
                 linkTextChunks = []
                 linkText = ""
+                linkTitle = ""
                 linkElementDiverter = .text
                 doubleBrackets = true
             case .endWikiLink1:

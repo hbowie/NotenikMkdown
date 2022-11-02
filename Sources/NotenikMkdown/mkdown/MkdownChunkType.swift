@@ -69,6 +69,9 @@ enum MkdownChunkType {
     case endWikiLink1
     case endWikiLink2
     
+    case plainPipe
+    case startWikiLinkTitle
+    
     case startLinkLabel
     case endLinkLabel
     
