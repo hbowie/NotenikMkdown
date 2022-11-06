@@ -3481,7 +3481,7 @@ public class MkdownParser {
             writeChunks(chunksToWrite: linkTextChunks)
         } else {
             writer.startLink(path: linkURL, title: linkTitle)
-            if linkTextChunks.count == 1 && linkTextChunks[0].type == .plaintext {
+            if doubleBrackets && linkTextChunks.count == 1 && linkTextChunks[0].type == .plaintext {
                 let (_, item) = StringUtils.splitPath(linkTextChunks[0].text)
                 writer.append(item)
             } else {
