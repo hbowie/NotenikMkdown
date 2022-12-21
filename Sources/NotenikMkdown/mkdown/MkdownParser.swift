@@ -238,6 +238,8 @@ public class MkdownParser {
                         goodTag = true
                     case "hr", "blockquote", "address":
                         goodTag = true
+                    case "script":
+                        goodTag = true
                     case "!--":
                         goodTag = true
                     default:
