@@ -2095,6 +2095,8 @@ public class MkdownParser {
             return true
         case "#", "+", "-", ".", "!":
             return true
+        case "|":
+            return true
         default:
             return false
         }
@@ -2337,6 +2339,23 @@ public class MkdownParser {
     func scanForTableElements(forChunkAt: Int) {
         let firstChunk = chunks[forChunkAt]
         
+        var next = forChunkAt + 1
+        var priorNextChunk: MkdownChunk? = nil
+        while next < chunks.count {
+            nextChunk = chunks[next]
+            if priorNextChunk != nil && priorNextChunk!.tablePipe {
+                if nextChunk.tablePipe {
+                    firstChunk.columnsToSpan += 1
+                    nextChunk.type = .tablePipeExtra
+                } else {
+                    next = chunks.count
+                    break
+                }
+            }
+            priorNextChunk = nextChunk
+            next += 1
+        }
+        
         if forChunkAt == 0 {
             if firstChunk.type == .tableHeaderPipe {
                 firstChunk.type = .headerColumnStart
@@ -2348,11 +2367,15 @@ public class MkdownParser {
         
         var moreToTheRow = false
         
-        var next = forChunkAt + 1
+        next = forChunkAt + 1
         
         while !moreToTheRow && next < chunks.count {
             nextChunk = chunks[next]
-            if nextChunk.type != .plaintext || !StringUtils.trim(nextChunk.text).isEmpty {
+            if nextChunk.type == .tablePipeExtra {
+                // keep looking
+            } else if nextChunk.type != .plaintext {
+                moreToTheRow = true
+            } else if !StringUtils.trim(nextChunk.text).isEmpty {
                 moreToTheRow = true
             }
             next += 1
@@ -3309,24 +3332,33 @@ public class MkdownParser {
                 writer.leftDoubleQuote()
             case .doubleCurlyQuoteClose:
                 writer.rightDoubleQuote()
+                
+            // Deal with table pipes
             case .headerColumnStart:
-                writer.startTableHeader(style: getColumnStyle(columnIndex: columnIndex))
+                writer.startTableHeader(style: getColumnStyle(columnIndex: columnIndex), colspan: chunk.columnsToSpan)
+                columnsSpanned = chunk.columnsToSpan
             case .headerColumnFinish:
                 writer.finishTableHeader()
-                columnIndex += 1
+                columnIndex += columnsSpanned
             case .headerColumnFinishAndStart:
                 writer.finishTableHeader()
-                columnIndex += 1
-                writer.startTableHeader(style: getColumnStyle(columnIndex: columnIndex))
+                columnIndex += columnsSpanned
+                writer.startTableHeader(style: getColumnStyle(columnIndex: columnIndex), colspan: chunk.columnsToSpan)
+                columnsSpanned = chunk.columnsToSpan
             case .dataColumnStart:
-                writer.startTableData(style: getColumnStyle(columnIndex: columnIndex))
+                writer.startTableData(style: getColumnStyle(columnIndex: columnIndex), colspan: chunk.columnsToSpan)
+                columnsSpanned = chunk.columnsToSpan
             case .dataColumnFinish:
                 writer.finishTableData()
-                columnIndex += 1
+                columnIndex += columnsSpanned
             case .dataColumnFinishAndStart:
                 writer.finishTableData()
-                columnIndex += 1
-                writer.startTableData(style: getColumnStyle(columnIndex: columnIndex))
+                columnIndex += columnsSpanned
+                writer.startTableData(style: getColumnStyle(columnIndex: columnIndex), colspan: chunk.columnsToSpan)
+                columnsSpanned = chunk.columnsToSpan
+            case .tablePipeExtra:
+                break
+                
             case .startCheckBox:
                 break
             case .checkBoxContent:
@@ -3340,6 +3372,8 @@ public class MkdownParser {
             }
         }
     }
+    
+    var columnsSpanned = 1
     
     func getColumnStyle(columnIndex: Int) -> String {
         guard columnIndex >= 0 && columnIndex < columnStyles.count else { return "" }

@@ -22,6 +22,8 @@ class MkdownChunk {
     var textCount = 0
     var wordCount = 0
     
+    var columnsToSpan = 1
+    
     var spaceBefore = true
     var _spaceAfter = true
     var spaceAfter: Bool {
@@ -38,16 +40,20 @@ class MkdownChunk {
         }
     }
     
-    var emphasisChar: Bool {
-        return type == .asterisk || type == .underline
-    }
-    
     init() {
         
     }
     
     init(line: MkdownLine) {
         lineType = line.type
+    }
+    
+    var emphasisChar: Bool {
+        return type == .asterisk || type == .underline
+    }
+    
+    var tablePipe: Bool {
+        return type == .tableHeaderPipe || type == .tableDataPipe
     }
     
     func setTextFrom(char: Character) {
