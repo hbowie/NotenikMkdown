@@ -24,6 +24,7 @@ public class MkdownOptions {
     public var localMj = true
     public var localMjUrl: URL?
     public var curlyApostrophes = true
+    public var extLinksOpenInNewWindows = false
     
     public init() {
         wikiLinkPrefix = interNoteDomain

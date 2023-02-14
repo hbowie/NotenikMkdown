@@ -3,7 +3,7 @@
 //  NotenikMkdown
 //
 //  Created by Herb Bowie on 2/25/20.
-//  Copyright © 2020 - 2022 Herb Bowie (https://hbowie.net)
+//  Copyright © 2020 - 2023 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -3467,7 +3467,7 @@ public class MkdownParser {
     
     func finishAutoLink() {
         if autoLinkSep == ":" {
-            writer.link(text: autoLink, path: autoLink)
+            writer.link(text: autoLink, path: autoLink, blankTarget: options.extLinksOpenInNewWindows)
         } else {
             writer.link(text: autoLink, path: "mailto:\(autoLink)")
         }
@@ -3489,8 +3489,10 @@ public class MkdownParser {
         var skipLink = false
         
         // If this is a wiki style link, then format the URL from the text.
+        var blankTarget = options.extLinksOpenInNewWindows
         if doubleBrackets {
             linkURL = assembleWikiLink(title: linkText)
+            blankTarget = false
         }
 
         // If this is a reference style link, then let's look it up in the dictionary.
@@ -3518,7 +3520,7 @@ public class MkdownParser {
         } else if skipLink {
             writeChunks(chunksToWrite: linkTextChunks)
         } else {
-            writer.startLink(path: linkURL, title: linkTitle)
+            writer.startLink(path: linkURL, title: linkTitle, blankTarget: blankTarget)
             if doubleBrackets && linkTextChunks.count == 1 && linkTextChunks[0].type == .plaintext {
                 let (_, item) = StringUtils.splitPath(linkTextChunks[0].text)
                 writer.append(item)
