@@ -30,6 +30,9 @@ public protocol MkdownContext {
     /// Return a search page for the Collection, formatted in HTML.
     func mkdownSearch(siteURL: String) -> String
     
+    /// Generate javascript to sort the following table.
+    func mkdownTableSort(tableID: String) -> String
+    
     /// Return a tags outline of the collection, formatted in HTML.
     func mkdownTagsOutline(mods: String) -> String
     

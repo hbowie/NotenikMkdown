@@ -103,6 +103,8 @@ public class MkdownParser {
     }
     
     var tableStarted = false
+    var tableSortable = false
+    var tableID = ""
     var columnStyles: [String] = []
     var columnIndex = 0
     
@@ -1026,6 +1028,8 @@ public class MkdownParser {
                     // do nothing
                 } else if char == "]" || char == "}" {
                     modsComplete = true
+                } else if char.isWhitespace && mods.isEmpty {
+                    // do nothing 
                 } else {
                     mods.append(char)
                     if char == "-" {
@@ -1093,6 +1097,10 @@ public class MkdownParser {
             return true
         case "search":
             nextLine.type = .search
+            nextLine.commandMods = mods
+            return true
+        case "sorttable":
+            nextLine.type = .sortTable
             nextLine.commandMods = mods
             return true
         default:
@@ -1456,6 +1464,15 @@ public class MkdownParser {
             case .search:
                 if mkdownContext != nil {
                     writer.writeLine(mkdownContext!.mkdownSearch(siteURL: line.commandMods))
+                }
+            case .sortTable:
+                if mkdownContext != nil {
+                    tableID = line.commandMods
+                    if tableID.isEmpty {
+                        tableID = "sortable-table"
+                    }
+                    writer.writeLine(mkdownContext!.mkdownTableSort(tableID: tableID))
+                    tableSortable = true
                 }
             case .tagsCloud:
                 if mkdownContext != nil {
@@ -1888,7 +1905,7 @@ public class MkdownParser {
         case "pre":
             writer.startPreformatted()
         case "table":
-            writer.startTable()
+            writer.startTable(id: tableID)
         case "ul":
             if checkBox.count == 3 {
                 writer.startUnorderedList(klass: "checklist")
@@ -1946,6 +1963,8 @@ public class MkdownParser {
             writer.finishPreformatted()
         case "table":
             writer.finishTable()
+            tableSortable = false
+            tableID = ""
         case "ul":
             writer.finishUnorderedList()
         default:
@@ -3335,7 +3354,11 @@ public class MkdownParser {
                 
             // Deal with table pipes
             case .headerColumnStart:
-                writer.startTableHeader(style: getColumnStyle(columnIndex: columnIndex), colspan: chunk.columnsToSpan)
+                var onclick = ""
+                if tableSortable {
+                    onclick = "sortTable(\(columnIndex))"
+                }
+                writer.startTableHeader(onclick: onclick, style: getColumnStyle(columnIndex: columnIndex), colspan: chunk.columnsToSpan)
                 columnsSpanned = chunk.columnsToSpan
             case .headerColumnFinish:
                 writer.finishTableHeader()
@@ -3343,7 +3366,11 @@ public class MkdownParser {
             case .headerColumnFinishAndStart:
                 writer.finishTableHeader()
                 columnIndex += columnsSpanned
-                writer.startTableHeader(style: getColumnStyle(columnIndex: columnIndex), colspan: chunk.columnsToSpan)
+                var onclick = ""
+                if tableSortable {
+                    onclick = "sortTable(\(columnIndex))"
+                }
+                writer.startTableHeader(onclick: onclick, style: getColumnStyle(columnIndex: columnIndex), colspan: chunk.columnsToSpan)
                 columnsSpanned = chunk.columnsToSpan
             case .dataColumnStart:
                 writer.startTableData(style: getColumnStyle(columnIndex: columnIndex), colspan: chunk.columnsToSpan)

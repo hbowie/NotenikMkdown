@@ -42,6 +42,7 @@ enum MkdownLineType {
     case teasers
     case tocForCollection
     case unorderedItem
+    case sortTable
     
     var isNumberedItem: Bool {
         return self == .orderedItem || self == .footnoteItem || self == .citationItem
