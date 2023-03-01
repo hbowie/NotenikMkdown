@@ -22,6 +22,12 @@ import NotenikUtils
 
 public class MkdownParser {
     
+    //-------------------------------------------------------------
+    //
+    // HTML class values
+    //
+    //-------------------------------------------------------------
+    
     // ===============================================================
     //
     // OVERALL PARSING STRATEGY
@@ -3494,9 +3500,9 @@ public class MkdownParser {
     
     func finishAutoLink() {
         if autoLinkSep == ":" {
-            writer.link(text: autoLink, path: autoLink, blankTarget: options.extLinksOpenInNewWindows)
+            writer.link(text: autoLink, path: autoLink, klass: Markedup.htmlClassExtLink, blankTarget: options.extLinksOpenInNewWindows)
         } else {
-            writer.link(text: autoLink, path: "mailto:\(autoLink)")
+            writer.link(text: autoLink, path: "mailto:\(autoLink)", klass: Markedup.htmlClassExtLink)
         }
     }
         
@@ -3517,9 +3523,11 @@ public class MkdownParser {
         
         // If this is a wiki style link, then format the URL from the text.
         var blankTarget = options.extLinksOpenInNewWindows
+        var linkClass = Markedup.htmlClassExtLink
         if doubleBrackets {
             linkURL = assembleWikiLink(title: linkText)
             blankTarget = false
+            linkClass = Markedup.htmlClassWikiLink
         }
 
         // If this is a reference style link, then let's look it up in the dictionary.
@@ -3547,7 +3555,13 @@ public class MkdownParser {
         } else if skipLink {
             writeChunks(chunksToWrite: linkTextChunks)
         } else {
-            writer.startLink(path: linkURL, title: linkTitle, blankTarget: blankTarget)
+            if !linkURL.starts(with: "https://") && !linkURL.starts(with: "http://") {
+                linkClass = Markedup.htmlClassWikiLink
+                if blankTarget {
+                    blankTarget = false
+                }
+            }
+            writer.startLink(path: linkURL, title: linkTitle, klass: linkClass, blankTarget: blankTarget)
             if doubleBrackets && linkTextChunks.count == 1 && linkTextChunks[0].type == .plaintext {
                 let (_, item) = StringUtils.splitPath(linkTextChunks[0].text)
                 writer.append(item)
