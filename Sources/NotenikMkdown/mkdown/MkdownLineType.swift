@@ -11,6 +11,7 @@
 
 enum MkdownLineType {
     case blank
+    case biblio
     case citationDef
     case citationItem
     case code

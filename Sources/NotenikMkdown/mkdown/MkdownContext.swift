@@ -4,7 +4,7 @@
 //
 //  Created by Herb Bowie on 3/22/20.
 
-//  Copyright © 2020 - 2022 Herb Bowie (https://hbowie.net)
+//  Copyright © 2020 - 2023 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -12,7 +12,9 @@
 
 import Foundation
 
-/// A protocol for looking up a title and transforming it to a different value.
+/// A protocol for performing various operations that require some context of other Notes
+/// within a Collection, in order to generate some Markdown or HTML to be inserted into
+/// the display of a Note whose Markdown is being parsed.
 public protocol MkdownContext {
     
     /// Set the Title of the Note whose Markdown text is to be parsed.
@@ -44,5 +46,8 @@ public protocol MkdownContext {
     
     /// Include another Note, or an external file. 
     func mkdownInclude(item: String, style: String) -> String?
+    
+    /// Generate a bibliography from Notes following this one. 
+    func mkdownBibliography() -> String
     
 }

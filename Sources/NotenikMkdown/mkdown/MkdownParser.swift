@@ -1066,6 +1066,9 @@ public class MkdownParser {
         }
         
         switch command {
+        case "biblio":
+            nextLine.type = .biblio
+            return true
         case "collectiontoc":
             nextLine.type = .tocForCollection
             nextLine.tocLevelStart = digit1
@@ -1426,6 +1429,10 @@ public class MkdownParser {
             }
             
             switch line.type {
+            case .biblio:
+                if mkdownContext != nil {
+                    writer.writeLine(mkdownContext!.mkdownBibliography())
+                }
             case .code:
                 chunkAndWrite(line)
                 writer.newLine()
