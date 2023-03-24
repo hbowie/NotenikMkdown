@@ -1431,6 +1431,7 @@ public class MkdownParser {
             switch line.type {
             case .biblio:
                 if mkdownContext != nil {
+                    writer.spaceBeforeBlock()
                     writer.writeLine(mkdownContext!.mkdownBibliography())
                 }
             case .code:
