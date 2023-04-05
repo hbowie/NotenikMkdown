@@ -1731,7 +1731,11 @@ public class MkdownParser {
     func writeFootnoteReturn(number: Int) {
         writer.append(" ")
         writer.openTag("a")
-        writer.addHref("#fnref:\(number)")
+        let anchorID = genAnchorID(poundPrefix: true,
+                                   type: .footnote,
+                                   direction: .back,
+                                   number: number)
+        writer.addHref(anchorID)
         writer.addTitle("return to article")
         writer.addClass("reversefootnote")
         writer.closeTag()
@@ -1744,7 +1748,11 @@ public class MkdownParser {
     func writeCitationReturn(number: Int) {
         writer.append(" ")
         writer.openTag("a")
-        writer.addHref("#cnref:\(number)")
+        let anchorID = genAnchorID(poundPrefix: true,
+                                   type: .citation,
+                                   direction: .back,
+                                   number: number)
+        writer.addHref(anchorID)
         writer.addTitle("return to body")
         writer.addClass("reversecitation")
         writer.closeTag()
@@ -1903,11 +1911,16 @@ public class MkdownParser {
         case "li":
             if footnoteItem {
                 writer.openTag("li")
-                writer.addID("fn:\(itemNumber)")
+                let anchorID = genAnchorID(poundPrefix: false,
+                                     type: .footnote,
+                                     direction: .to,
+                                     number: itemNumber)
+                writer.addID(anchorID)
                 writer.closeTag()
             } else if citationItem {
                 writer.openTag("li")
-                writer.addID("cn:\(itemNumber)")
+                let anchorID = genAnchorID(poundPrefix: false, type: .citation, direction: .to, number: itemNumber)
+                writer.addID(anchorID)
                 writer.closeTag()
             } else {
                 writer.startListItem()
@@ -3250,8 +3263,10 @@ public class MkdownParser {
                 footnote.inputLine = chunk.text
                 let assignedNumber = addFootnote()
                 writer.openTag("a")
-                writer.addHref("#fn:\(assignedNumber)")
-                writer.addID("fnref:\(assignedNumber)")
+                var anchorID = genAnchorID(poundPrefix: true, type: .footnote, direction: .to, number: assignedNumber)
+                writer.addHref(anchorID)
+                anchorID = genAnchorID(poundPrefix: false, type: .footnote, direction: .back, number: assignedNumber)
+                writer.addID(anchorID)
                 writer.addTitle("see footnote")
                 writer.addClass("footnote")
                 writer.closeTag()
@@ -3277,8 +3292,10 @@ public class MkdownParser {
                 let assignedNumber = addCitation()
                 if citation.cited {
                     writer.openTag("a")
-                    writer.addHref("#cn:\(assignedNumber)")
-                    writer.addID("cnref:\(assignedNumber)")
+                    var anchorID = genAnchorID(poundPrefix: true, type: .citation, direction: .to, number: assignedNumber)
+                    writer.addHref(anchorID)
+                    anchorID = genAnchorID(poundPrefix: false, type: .citation, direction: .back, number: assignedNumber)
+                    writer.addID(anchorID)
                     writer.addTitle("see citation")
                     writer.addClass("citation")
                     writer.closeTag()
@@ -3609,6 +3626,47 @@ public class MkdownParser {
         }
     }
     
+    /// Generate an Anchor ID to be used for internal page links.
+    /// - Parameters:
+    ///   - poundPrefix: Set to true if the result will be used in an href, or false if to be used in an id.
+    ///   - type: Citation or Footnote?
+    ///   - direction: Is this a link to the footnote/citation, or a link back to the referencing text.
+    ///   - number: The number identifying the sequence of the footnote/citation within the note/page.
+    /// - Returns: A complete formatted ID that can be used for consistency.
+    func genAnchorID(poundPrefix: Bool,
+                     type: AnchorIdType,
+                     direction: AnchorIdDirection,
+                     number: Int) -> String {
+        var id = ""
+        
+        if poundPrefix {
+            id.append("#")
+        }
+        
+        switch type {
+        case .citation:
+            id.append("cn")
+        case .footnote:
+            id.append("fn")
+        }
+        
+        switch direction {
+        case .to:
+            break
+        case .back:
+            id.append("ref")
+        }
+        id.append(":")
+        
+        if !options.shortID.isEmpty {
+            id.append("\(options.shortID)-")
+        }
+        
+        id.append("\(number)")
+
+        return id
+    }
+    
     enum LinkElementDiverter {
         case na
         case text
@@ -3616,6 +3674,16 @@ public class MkdownParser {
         case title
         case url
         case autoLink
+    }
+    
+    enum AnchorIdType {
+        case citation
+        case footnote
+    }
+    
+    enum AnchorIdDirection {
+        case to
+        case back
     }
     
 }

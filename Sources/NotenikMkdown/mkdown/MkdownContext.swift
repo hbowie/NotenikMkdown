@@ -18,7 +18,7 @@ import Foundation
 public protocol MkdownContext {
     
     /// Set the Title of the Note whose Markdown text is to be parsed.
-    func setTitleToParse(title: String)
+    func setTitleToParse(title: String, shortID: String)
     
     /// Given the title of one Note, return the (possibly renamed) title to be used. 
     func mkdownWikiLinkLookup(linkText: String) -> WikiLinkTarget?
