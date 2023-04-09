@@ -28,9 +28,12 @@ enum MkdownLineType {
     case index
     case linkDef
     case linkDefExt
+    case footer
     case footnoteDef
     case footnoteItem
+    case header
     case math
+    case nav
     case orderedItem
     case ordinaryText
     case search

@@ -17,8 +17,13 @@ import Foundation
 /// the display of a Note whose Markdown is being parsed.
 public protocol MkdownContext {
     
+    var pageType: MkdownPageType { get set }
+    
     /// Set the Title of the Note whose Markdown text is to be parsed.
     func setTitleToParse(title: String, shortID: String)
+    
+    /// Set by the parser when some page type other than main is encountered. 
+    func setPageType(_ pageType: MkdownPageType)
     
     /// Given the title of one Note, return the (possibly renamed) title to be used. 
     func mkdownWikiLinkLookup(linkText: String) -> WikiLinkTarget?

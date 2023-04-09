@@ -161,10 +161,13 @@ public class MkdownParser {
         options.wikiLinkFormatting = format
         options.wikiLinkSuffix = suffix
         mkdownContext = context
+        setPageType(.main)
     }
     
     /// Perform the parsing.
     public func parse() {
+        
+        setPageType(.main)
         
         counts.size = mdin.count
         counts.lines = 0
@@ -1112,6 +1115,15 @@ public class MkdownParser {
             nextLine.type = .sortTable
             nextLine.commandMods = mods
             return true
+        case "header":
+            nextLine.type = .header
+            return true
+        case "footer":
+            nextLine.type = .footer
+            return true
+        case "nav":
+            nextLine.type = .nav
+            return true
         default:
             return false
         }
@@ -1538,6 +1550,12 @@ public class MkdownParser {
                 break
             case .include:
                 break
+            case .header:
+                setPageType(.header)
+            case .footer:
+                setPageType(.footer)
+            case .nav:
+                setPageType(.nav)
             }
             
             if line.endOfFootnote {
@@ -1566,6 +1584,12 @@ public class MkdownParser {
         }
         if citationLines.count > 0 {
             finishWritingCitations()
+        }
+    }
+    
+    func setPageType(_ pageType: MkdownPageType) {
+        if let context = mkdownContext {
+            context.setPageType(pageType)
         }
     }
     
