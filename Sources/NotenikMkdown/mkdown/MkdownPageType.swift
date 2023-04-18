@@ -17,4 +17,19 @@ public enum MkdownPageType {
     case header
     case footer
     case nav
+    case metadata
+    case search
+    
+    public func excludeFromBook(epub: Bool) -> Bool {
+        if self == .main { return false }
+        if self == .search && epub { return true }
+        return true
+    }
+    
+    public func includeInBook(epub: Bool) -> Bool {
+        if self == .main { return true }
+        if self == .search && !epub { return true }
+        return false
+    }
+
 }

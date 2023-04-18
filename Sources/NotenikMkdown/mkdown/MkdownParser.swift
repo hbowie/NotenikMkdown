@@ -1124,6 +1124,12 @@ public class MkdownParser {
         case "nav":
             nextLine.type = .nav
             return true
+        case "metadata":
+            nextLine.type = .metadata
+            codeFenced = true
+            codeFenceChar = "`"
+            codeFenceRepeatCount = 99
+            return true
         default:
             return false
         }
@@ -1491,6 +1497,7 @@ public class MkdownParser {
                 if mkdownContext != nil {
                     writer.writeLine(mkdownContext!.mkdownSearch(siteURL: line.commandMods))
                 }
+                setPageType(.search)
             case .sortTable:
                 if mkdownContext != nil {
                     tableID = line.commandMods
@@ -1556,6 +1563,8 @@ public class MkdownParser {
                 setPageType(.footer)
             case .nav:
                 setPageType(.nav)
+            case .metadata:
+                setPageType(.metadata)
             }
             
             if line.endOfFootnote {
