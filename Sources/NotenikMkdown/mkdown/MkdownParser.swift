@@ -161,13 +161,10 @@ public class MkdownParser {
         options.wikiLinkFormatting = format
         options.wikiLinkSuffix = suffix
         mkdownContext = context
-        setPageType(.main)
     }
     
     /// Perform the parsing.
     public func parse() {
-        
-        setPageType(.main)
         
         counts.size = mdin.count
         counts.lines = 0
@@ -1068,18 +1065,19 @@ public class MkdownParser {
             return false
         }
         
+        exposeMarkdownCommand(command)
         switch command {
-        case "biblio":
+        case MkdownConstants.biblioCmd:
             nextLine.type = .biblio
             return true
-        case "collectiontoc":
+        case MkdownConstants.collectionTocCmd:
             nextLine.type = .tocForCollection
             nextLine.tocLevelStart = digit1
             if digit2.isNumber {
                 nextLine.tocLevelEnd = digit2
             }
             return true
-        case "toc":
+        case MkdownConstants.tocCmd:
             nextLine.type = .tableOfContents
             tocFound = true
             nextLine.tocLevelStart = digit1
@@ -1087,44 +1085,44 @@ public class MkdownParser {
                 nextLine.tocLevelEnd = digit2
             }
             return true
-        case "index":
+        case MkdownConstants.indexCmd:
             nextLine.type = .index
             return true
-        case "tagscloud":
+        case MkdownConstants.tagsCloudCmd:
             nextLine.type = .tagsCloud
             nextLine.commandMods = mods
             return true
-        case "tagsoutline":
+        case MkdownConstants.tagsOutlineCmd:
             nextLine.type = .tagsOutline
             nextLine.commandMods = mods
             return true
-        case "include":
+        case MkdownConstants.includeCmd:
             nextLine.type = .include
             if mkdownContext != nil {
                 textToInclude = mkdownContext!.mkdownInclude(item: mods, style: includeStyle)
             }
             return true
-        case "teasers":
+        case MkdownConstants.teasersCmd:
             nextLine.type = .teasers
             return true
-        case "search":
+        case MkdownConstants.searchCmd:
             nextLine.type = .search
             nextLine.commandMods = mods
             return true
-        case "sorttable":
+        case MkdownConstants.sortTableCmd:
             nextLine.type = .sortTable
             nextLine.commandMods = mods
             return true
-        case "header":
+        case MkdownConstants.headerCmd:
             nextLine.type = .header
             return true
-        case "footer":
+        case MkdownConstants.footerCmd:
             nextLine.type = .footer
             return true
-        case "nav":
+        case MkdownConstants.navCmd:
             nextLine.type = .nav
             return true
-        case "metadata":
+        case MkdownConstants.metadataCmd:
             nextLine.type = .metadata
             codeFenced = true
             codeFenceChar = "`"
@@ -1497,7 +1495,6 @@ public class MkdownParser {
                 if mkdownContext != nil {
                     writer.writeLine(mkdownContext!.mkdownSearch(siteURL: line.commandMods))
                 }
-                setPageType(.search)
             case .sortTable:
                 if mkdownContext != nil {
                     tableID = line.commandMods
@@ -1558,13 +1555,13 @@ public class MkdownParser {
             case .include:
                 break
             case .header:
-                setPageType(.header)
+                break
             case .footer:
-                setPageType(.footer)
+                break
             case .nav:
-                setPageType(.nav)
+                break
             case .metadata:
-                setPageType(.metadata)
+                break
             }
             
             if line.endOfFootnote {
@@ -1596,9 +1593,9 @@ public class MkdownParser {
         }
     }
     
-    func setPageType(_ pageType: MkdownPageType) {
+    func exposeMarkdownCommand(_ command: String) {
         if let context = mkdownContext {
-            context.setPageType(pageType)
+            context.exposeMarkdownCommand(command)
         }
     }
     
