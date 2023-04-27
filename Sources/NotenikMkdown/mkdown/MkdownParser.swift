@@ -1128,6 +1128,10 @@ public class MkdownParser {
             codeFenceChar = "`"
             codeFenceRepeatCount = 99
             return true
+        case MkdownConstants.randomCmd:
+            nextLine.type = .random
+            nextLine.commandMods = mods
+            return true
         default:
             return false
         }
@@ -1522,6 +1526,10 @@ public class MkdownParser {
                         mkdownContext!.mkdownCollectionTOC(
                             levelStart: line.tocLevelStartInt,
                             levelEnd: line.tocLevelEndInt))
+                }
+            case .random:
+                if mkdownContext != nil {
+                    writer.writeLine(mkdownContext!.mkdownRandomNote(klassNames: line.commandMods))
                 }
             case .math:
                 if line.startMathBlock {

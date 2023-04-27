@@ -28,6 +28,7 @@ public struct MkdownConstants {
     public static let indexCmd          = "index"
     public static let metadataCmd       = "metadata"
     public static let navCmd            = "nav"
+    public static let randomCmd         = "random"
     public static let searchCmd         = "search"
     public static let sortTableCmd      = "sorttable"
     public static let tagsCloudCmd      = "tagscloud"

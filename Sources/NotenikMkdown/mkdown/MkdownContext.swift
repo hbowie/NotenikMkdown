@@ -32,6 +32,9 @@ public protocol MkdownContext {
     /// Return an index to the Collection, formatted in HTML.
     func mkdownIndex() -> String
     
+    /// Generate a page that will randomly navigate to another page. 
+    func mkdownRandomNote(klassNames: String) -> String
+    
     /// Return a search page for the Collection, formatted in HTML.
     func mkdownSearch(siteURL: String) -> String
     
