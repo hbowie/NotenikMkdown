@@ -12,13 +12,10 @@
 
 import Foundation
 
+/// Various options to control the conversion of Markdown to HTML. 
 public class MkdownOptions {
     
-    let interNoteDomain = "https://ntnk.app/"
-    
-    public var wikiLinkPrefix = ""
-    public var wikiLinkSuffix = ""
-    public var wikiLinkFormatting: WikiLinkFormat = .common
+    public var wikiLinks = WikiLinkDisplay()
     public var shortID = ""
     public var mathJax = false
     public var localMj = true
@@ -27,7 +24,7 @@ public class MkdownOptions {
     public var extLinksOpenInNewWindows = false
     
     public init() {
-        wikiLinkPrefix = interNoteDomain
+        
     }
     
     public func getHtmlScript() -> String {
@@ -50,10 +47,6 @@ public class MkdownOptions {
         script.append("<script type=\"text/javascript\" id=\"MathJax-script\" async src=\"\(mjUrlString)\"> \n")
         script.append("</script>")
         return script
-    }
-    
-    public func displayWikiLinkFields() {
-        print("MkdownOptions wiki link format: \(wikiLinkPrefix) + \(wikiLinkFormatting) + \(wikiLinkSuffix)")
     }
     
 }

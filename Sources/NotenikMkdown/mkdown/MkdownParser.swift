@@ -157,9 +157,7 @@ public class MkdownParser {
                                format: WikiLinkFormat,
                                suffix: String,
                                context: MkdownContext? = nil) {
-        options.wikiLinkPrefix = prefix
-        options.wikiLinkFormatting = format
-        options.wikiLinkSuffix = suffix
+        options.wikiLinks.set(format: format, prefix: prefix, suffix: suffix)
         mkdownContext = context
     }
     
@@ -1670,8 +1668,8 @@ public class MkdownParser {
             writer.ensureBlankLine()
         }
         guard mkdownContext != nil
-                && options.wikiLinkFormatting == .fileName
-                && options.interNoteDomain.count > 1 else {
+                && options.wikiLinks.format == .fileName
+                && options.wikiLinks.interNoteDomain.count > 1 else {
             writer.writeLine(line.line)
             return
         }
@@ -1679,7 +1677,7 @@ public class MkdownParser {
         var newLine = ""
         var matchingPhase = 0
         
-        let domain = options.interNoteDomain
+        let domain = options.wikiLinks.interNoteDomain
         var domainIndex = domain.startIndex
         var precedingStart = line.line.startIndex
         var domainStart = line.line.startIndex
@@ -3650,13 +3648,11 @@ public class MkdownParser {
             }
             wikiLinkList.links.append(wikiLink)
         }
-        return options.wikiLinkPrefix
-            + wikiLink.bestTarget.formatWikiLink(format: options.wikiLinkFormatting)
-            + options.wikiLinkSuffix
+        return options.wikiLinks.assembleWikiLink(target: wikiLink.bestTarget)
     }
     
     func formatWikiLink(_ target: WikiLinkTarget) -> String {
-        switch options.wikiLinkFormatting {
+        switch options.wikiLinks.format {
         case .common:
             return target.pathSlashID
         case .fileName:

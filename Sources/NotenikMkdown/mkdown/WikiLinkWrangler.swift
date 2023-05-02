@@ -66,21 +66,21 @@ public class WikiLinkWrangler {
     }
     
     public func assembleWikiLink(target: WikiLinkTarget) -> String {
-        return options.wikiLinkPrefix
-            + target.formatWikiLink(format: options.wikiLinkFormatting)
-            + options.wikiLinkSuffix
+        return options.wikiLinks.prefix
+            + target.formatWikiLink(format: options.wikiLinks.format)
+            + options.wikiLinks.suffix
     }
     
     /// Create a wiki link, based on the wiki parms.
     public func assembleWikiLink(title: String) -> String {
-        return options.wikiLinkPrefix
+        return options.wikiLinks.prefix
             + formatWikiLink(title)
-            + options.wikiLinkSuffix
+            + options.wikiLinks.suffix
     }
     
     /// Convert a title to something that can be used in a link.
     public func formatWikiLink(_ title: String) -> String {
-        switch options.wikiLinkFormatting {
+        switch options.wikiLinks.format {
         case .common:
             return StringUtils.toCommon(title)
         case .fileName:
