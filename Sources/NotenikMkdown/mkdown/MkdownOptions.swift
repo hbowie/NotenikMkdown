@@ -52,4 +52,8 @@ public class MkdownOptions {
         return script
     }
     
+    public func displayWikiLinkFields() {
+        print("MkdownOptions wiki link format: \(wikiLinkPrefix) + \(wikiLinkFormatting) + \(wikiLinkSuffix)")
+    }
+    
 }
