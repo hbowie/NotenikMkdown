@@ -37,6 +37,7 @@ enum MkdownLineType {
     case nav
     case orderedItem
     case ordinaryText
+    case outline
     case random
     case search
     case tableHeader

@@ -113,6 +113,8 @@ public class MkdownParser {
     var tableID = ""
     var columnStyles: [String] = []
     var columnIndex = 0
+    var outlining = false
+    var openDetails: [Bool] = [false, false, false, false, false, false, false]
     
     public var counts = MkdownCounts()
     
@@ -1130,6 +1132,10 @@ public class MkdownParser {
             nextLine.type = .random
             nextLine.commandMods = mods
             return true
+        case MkdownConstants.outlineCmd:
+            nextLine.type = .outline
+            nextLine.commandMods = mods
+            return true
         default:
             return false
         }
@@ -1377,6 +1383,8 @@ public class MkdownParser {
     func writeHTML() {
         writer = Markedup()
         lastQuoteLevel = 0
+        outlining = false
+        openDetails = [false, false, false, false, false, false, false]
         openBlocks = MkdownBlockStack()
         
         mainLineIndex = 0
@@ -1540,6 +1548,9 @@ public class MkdownParser {
                     writer.write("$$")
                 }
                 writer.newLine()
+            case .outline:
+                outlining = true
+                openDetails = [false, false, false, false, false, false, false]
             case .blank:
                 break
             case .citationDef:
@@ -1590,6 +1601,9 @@ public class MkdownParser {
             
         }
         closeBlocks(from: 0)
+        if outlining {
+            closeDetails(downTo: 1)
+        }
         
         if footnoteLines.count > 0 {
             finishWritingFootnotes()
@@ -1933,17 +1947,17 @@ public class MkdownParser {
         case "dt":
             writer.startDefTerm()
         case "h1":
-            writer.startHeading(level: 1, id: StringUtils.toCommonFileName(text))
+            startHeading(level: 1, text: text)
         case "h2":
-            writer.startHeading(level: 2, id: StringUtils.toCommonFileName(text))
+            startHeading(level: 2, text: text)
         case "h3":
-            writer.startHeading(level: 3, id: StringUtils.toCommonFileName(text))
+            startHeading(level: 3, text: text)
         case "h4":
-            writer.startHeading(level: 4, id: StringUtils.toCommonFileName(text))
+            startHeading(level: 4, text: text)
         case "h5":
-            writer.startHeading(level: 5, id: StringUtils.toCommonFileName(text))
+            startHeading(level: 5, text: text)
         case "h6":
-            writer.startHeading(level: 6, id: StringUtils.toCommonFileName(text))
+            startHeading(level: 6, text: text)
         case "li":
             if footnoteItem {
                 writer.openTag("li")
@@ -1981,6 +1995,28 @@ public class MkdownParser {
         chunks = []
     }
     
+    func startHeading(level: Int, text: String) {
+        if outlining {
+            closeDetails(downTo: level)
+            writer.startDetails(klass: "heading-\(level)-details")
+            openDetails[level] = true
+            writer.startSummary(id: StringUtils.toCommonFileName(text), klass: "heading-\(level)-summary")
+        } else {
+            writer.startHeading(level: level, id: StringUtils.toCommonFileName(text))
+        }
+    }
+    
+    func closeDetails(downTo: Int) {
+        var ix = 6
+        while ix >= downTo {
+            if openDetails[ix] {
+                writer.finishDetails()
+                openDetails[ix] = false
+            }
+            ix -= 1
+        }
+    }
+    
     func closeBlocks(from startToClose: Int) {
         var blockToClose = openBlocks.count - 1
         while blockToClose >= startToClose {
@@ -2005,17 +2041,17 @@ public class MkdownParser {
         case "dt":
             writer.finishDefTerm()
         case "h1":
-            writer.finishHeading(level: 1)
+            finishHeading(level: 1)
         case "h2":
-            writer.finishHeading(level: 2)
+            finishHeading(level: 2)
         case "h3":
-            writer.finishHeading(level: 3)
+            finishHeading(level: 3)
         case "h4":
-            writer.finishHeading(level: 4)
+            finishHeading(level: 4)
         case "h5":
-            writer.finishHeading(level: 5)
+            finishHeading(level: 5)
         case "h6":
-            writer.finishHeading(level: 6)
+            finishHeading(level: 6)
         case "li":
             writer.finishListItem()
         case "ol":
@@ -2032,6 +2068,14 @@ public class MkdownParser {
             writer.finishUnorderedList()
         default:
             print("Don't know how to close tag of \(tag)")
+        }
+    }
+    
+    func finishHeading(level: Int) {
+        if outlining {
+            writer.finishSummary()
+        } else {
+            writer.finishHeading(level: level)
         }
     }
     
