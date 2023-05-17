@@ -114,6 +114,8 @@ public class MkdownParser {
     var columnStyles: [String] = []
     var columnIndex = 0
     var outlining = false
+    var outlineMod = 0
+    var detailsDepth = 0
     var openDetails: [Bool] = [false, false, false, false, false, false, false]
     
     public var counts = MkdownCounts()
@@ -1384,6 +1386,7 @@ public class MkdownParser {
         writer = Markedup()
         lastQuoteLevel = 0
         outlining = false
+        detailsDepth = 0
         openDetails = [false, false, false, false, false, false, false]
         openBlocks = MkdownBlockStack()
         
@@ -1550,6 +1553,10 @@ public class MkdownParser {
                 writer.newLine()
             case .outline:
                 outlining = true
+                detailsDepth = 0
+                if let modInt = Int(line.commandMods) {
+                    outlineMod = modInt
+                }
                 openDetails = [false, false, false, false, false, false, false]
             case .blank:
                 break
@@ -1998,7 +2005,12 @@ public class MkdownParser {
     func startHeading(level: Int, text: String) {
         if outlining {
             closeDetails(downTo: level)
-            writer.startDetails(klass: "heading-\(level)-details")
+            detailsDepth += 1
+            if outlineMod > detailsDepth {
+                writer.startDetails(klass: "heading-\(level)-details", openParm: "true")
+            } else {
+                writer.startDetails(klass: "heading-\(level)-details")
+            }
             openDetails[level] = true
             writer.startSummary(id: StringUtils.toCommonFileName(text), klass: "heading-\(level)-summary")
         } else {
@@ -2012,6 +2024,7 @@ public class MkdownParser {
             if openDetails[ix] {
                 writer.finishDetails()
                 openDetails[ix] = false
+                detailsDepth -= 1
             }
             ix -= 1
         }
