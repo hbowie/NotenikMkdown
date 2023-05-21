@@ -4,7 +4,7 @@ Seq:    3.2
 
 Body:
 
-{:outline:3}
+{:outline-headings:3}
 # Heading 1
 
 Details for Heading 1. 

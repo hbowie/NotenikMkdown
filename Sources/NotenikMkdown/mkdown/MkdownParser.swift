@@ -113,9 +113,10 @@ public class MkdownParser {
     var tableID = ""
     var columnStyles: [String] = []
     var columnIndex = 0
-    var outlining = false
+    
+    var outlining: MkdownOutlining = .none
     var outlineMod = 0
-    var detailsDepth = 0
+    var outlineDepth = 0
     var openDetails: [Bool] = [false, false, false, false, false, false, false]
     
     public var counts = MkdownCounts()
@@ -1134,8 +1135,12 @@ public class MkdownParser {
             nextLine.type = .random
             nextLine.commandMods = mods
             return true
-        case MkdownConstants.outlineCmd:
-            nextLine.type = .outline
+        case MkdownConstants.outlineBulletsCmd:
+            nextLine.type = .outlineBullets
+            nextLine.commandMods = mods
+            return true
+        case MkdownConstants.outlineHeadingsCmd:
+            nextLine.type = .outlineHeadings
             nextLine.commandMods = mods
             return true
         default:
@@ -1385,8 +1390,8 @@ public class MkdownParser {
     func writeHTML() {
         writer = Markedup()
         lastQuoteLevel = 0
-        outlining = false
-        detailsDepth = 0
+        outlining = .none
+        outlineDepth = 0
         openDetails = [false, false, false, false, false, false, false]
         openBlocks = MkdownBlockStack()
         
@@ -1457,6 +1462,7 @@ public class MkdownParser {
                 }
             }
             
+            // Take appropriate action based on type of line.
             switch line.type {
             case .biblio:
                 if mkdownContext != nil {
@@ -1480,7 +1486,15 @@ public class MkdownParser {
                 writeHTMLLine(line)
             case .ordinaryText:
                 textToChunks(line)
-            case .orderedItem, .unorderedItem, .footnoteItem, .citationItem:
+            case .unorderedItem:
+                if outlining == .bullets {
+                    writer.startSummary()
+                    chunkAndWrite(line)
+                    writer.finishSummary()
+                } else {
+                    textToChunks(line)
+                }
+            case .orderedItem, .footnoteItem, .citationItem:
                 textToChunks(line)
             case .defTerm, .defDefinition:
                 textToChunks(line)
@@ -1551,9 +1565,15 @@ public class MkdownParser {
                     writer.write("$$")
                 }
                 writer.newLine()
-            case .outline:
-                outlining = true
-                detailsDepth = 0
+            case .outlineBullets:
+                outlining = .bullets
+                outlineDepth = 0
+                if let modInt = Int(line.commandMods) {
+                    outlineMod = modInt
+                }
+            case .outlineHeadings:
+                outlining = .headings
+                outlineDepth = 0
                 if let modInt = Int(line.commandMods) {
                     outlineMod = modInt
                 }
@@ -1608,8 +1628,9 @@ public class MkdownParser {
             
         }
         closeBlocks(from: 0)
-        if outlining {
-            closeDetails(downTo: 1)
+        
+        if outlining == .headings{
+            closeHeadingDetails(downTo: 1)
         }
         
         if footnoteLines.count > 0 {
@@ -1981,6 +2002,13 @@ public class MkdownParser {
                 writer.closeTag()
             } else {
                 writer.startListItem()
+                if outlining == .bullets {
+                    if outlineMod > outlineDepth {
+                        writer.startDetails(klass: "list-item-\(outlineDepth)-details", openParm: "true")
+                    } else {
+                        writer.startDetails(klass: "list-item-\(outlineDepth)-details")
+                    }
+                }
             }
         case "ol":
             writer.startOrderedList(klass: nil)
@@ -1991,11 +2019,15 @@ public class MkdownParser {
         case "table":
             writer.startTable(id: tableID)
         case "ul":
-            if checkBox.count == 3 {
-                writer.startUnorderedList(klass: "checklist")
-            } else {
-                writer.startUnorderedList(klass: nil)
+            var ulKlass: String? = nil
+            if outlining == .bullets {
+                outlineDepth += 1
+                ulKlass = "outline-list"
             }
+            if checkBox.count == 3 {
+                ulKlass = "checklist"
+            }
+            writer.startUnorderedList(klass: ulKlass)
         default:
             print("Don't know how to open tag of \(tag)")
         }
@@ -2003,10 +2035,10 @@ public class MkdownParser {
     }
     
     func startHeading(level: Int, text: String) {
-        if outlining {
-            closeDetails(downTo: level)
-            detailsDepth += 1
-            if outlineMod > detailsDepth {
+        if outlining == .headings {
+            closeHeadingDetails(downTo: level)
+            outlineDepth += 1
+            if outlineMod > outlineDepth {
                 writer.startDetails(klass: "heading-\(level)-details", openParm: "true")
             } else {
                 writer.startDetails(klass: "heading-\(level)-details")
@@ -2018,13 +2050,13 @@ public class MkdownParser {
         }
     }
     
-    func closeDetails(downTo: Int) {
+    func closeHeadingDetails(downTo: Int) {
         var ix = 6
         while ix >= downTo {
             if openDetails[ix] {
                 writer.finishDetails()
                 openDetails[ix] = false
-                detailsDepth -= 1
+                outlineDepth -= 1
             }
             ix -= 1
         }
@@ -2066,6 +2098,9 @@ public class MkdownParser {
         case "h6":
             finishHeading(level: 6)
         case "li":
+            if outlining == .bullets {
+                writer.finishDetails()
+            }
             writer.finishListItem()
         case "ol":
             writer.finishOrderedList()
@@ -2078,6 +2113,9 @@ public class MkdownParser {
             tableSortable = false
             tableID = ""
         case "ul":
+            if outlining == .bullets {
+                outlineDepth -= 1
+            }
             writer.finishUnorderedList()
         default:
             print("Don't know how to close tag of \(tag)")
@@ -2085,7 +2123,7 @@ public class MkdownParser {
     }
     
     func finishHeading(level: Int) {
-        if outlining {
+        if outlining == .headings {
             writer.finishSummary()
         } else {
             writer.finishHeading(level: level)
