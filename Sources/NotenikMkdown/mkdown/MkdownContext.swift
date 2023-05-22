@@ -27,7 +27,7 @@ public protocol MkdownContext {
     func mkdownWikiLinkLookup(linkText: String) -> WikiLinkTarget?
     
     /// Return a Table of Contents for the Collection, formatted in HTML. 
-    func mkdownCollectionTOC(levelStart: Int, levelEnd: Int) -> String
+    func mkdownCollectionTOC(levelStart: Int, levelEnd: Int, details: Bool) -> String
     
     /// Return an index to the Collection, formatted in HTML.
     func mkdownIndex() -> String

@@ -26,8 +26,10 @@ class MkdownLine {
     var blocks = MkdownBlockStack()
     var quoteLevel = 0
     var hashCount = 0
-    var headingLevel = 0
     var headingNumber = 0
+    var headingLevel = 0
+    
+    var indentLevels = 0
     
     var repeatingChar: Character = " "
     var repeatCount = 0
@@ -103,8 +105,6 @@ class MkdownLine {
     var endsWithLineBreak: Bool {
         return type != .blank && type != .code && trailingSpaceCount >= 2
     }
-    
-    var indentLevels = 0
     
     func makeCode() {
         type = .code

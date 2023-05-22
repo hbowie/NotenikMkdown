@@ -1548,7 +1548,8 @@ public class MkdownParser {
                     writer.writeLine(
                         mkdownContext!.mkdownCollectionTOC(
                             levelStart: line.tocLevelStartInt,
-                            levelEnd: line.tocLevelEndInt))
+                            levelEnd: line.tocLevelEndInt,
+                            details: outlining == .bullets))
                 }
             case .random:
                 if mkdownContext != nil {
@@ -2037,14 +2038,16 @@ public class MkdownParser {
     func startHeading(level: Int, text: String) {
         if outlining == .headings {
             closeHeadingDetails(downTo: level)
-            outlineDepth += 1
-            if outlineMod > outlineDepth {
-                writer.startDetails(klass: "heading-\(level)-details", openParm: "true")
-            } else {
-                writer.startDetails(klass: "heading-\(level)-details")
+            if outlining == .headings {
+                outlineDepth += 1
+                if outlineMod > outlineDepth {
+                    writer.startDetails(klass: "heading-\(level)-details", openParm: "true")
+                } else {
+                    writer.startDetails(klass: "heading-\(level)-details")
+                }
+                openDetails[level] = true
+                writer.startSummary(id: StringUtils.toCommonFileName(text), klass: "heading-\(level)-summary")
             }
-            openDetails[level] = true
-            writer.startSummary(id: StringUtils.toCommonFileName(text), klass: "heading-\(level)-summary")
         } else {
             writer.startHeading(level: level, id: StringUtils.toCommonFileName(text))
         }
@@ -2066,7 +2069,10 @@ public class MkdownParser {
         var blockToClose = openBlocks.count - 1
         while blockToClose >= startToClose {
             let block = openBlocks.blocks[blockToClose]
-            closeBlock(tag: block.tag, footnoteItem: block.footnoteItem, citationItem: block.citationItem, itemNumber: block.itemNumber)
+            closeBlock(tag: block.tag,
+                       footnoteItem: block.footnoteItem,
+                       citationItem: block.citationItem,
+                       itemNumber: block.itemNumber)
             openBlocks.removeLast()
             blockToClose -= 1
         }
