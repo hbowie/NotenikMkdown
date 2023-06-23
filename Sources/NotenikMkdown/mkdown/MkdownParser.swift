@@ -1073,6 +1073,10 @@ public class MkdownParser {
         case MkdownConstants.biblioCmd:
             nextLine.type = .biblio
             return true
+        case MkdownConstants.calendarCmd:
+            nextLine.type = .calendar
+            print("MkdownParser Calendar command found")
+            return true
         case MkdownConstants.collectionTocCmd:
             nextLine.type = .tocForCollection
             nextLine.tocLevelStart = digit1
@@ -1468,6 +1472,11 @@ public class MkdownParser {
                 if mkdownContext != nil {
                     writer.spaceBeforeBlock()
                     writer.writeLine(mkdownContext!.mkdownBibliography())
+                }
+            case .calendar:
+                if mkdownContext != nil {
+                    writer.spaceBeforeBlock()
+                    writer.writeLine(mkdownContext!.mkdownCalendar(mods: line.commandMods))
                 }
             case .code:
                 chunkAndWrite(line)

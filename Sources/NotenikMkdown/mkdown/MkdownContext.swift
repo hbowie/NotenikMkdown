@@ -26,6 +26,9 @@ public protocol MkdownContext {
     /// Given the title of one Note, return the (possibly renamed) title to be used. 
     func mkdownWikiLinkLookup(linkText: String) -> WikiLinkTarget?
     
+    /// Generate HTML for a Calendar showing the Notes.
+    func mkdownCalendar(mods: String) -> String
+    
     /// Return a Table of Contents for the Collection, formatted in HTML. 
     func mkdownCollectionTOC(levelStart: Int, levelEnd: Int, details: Bool) -> String
     
