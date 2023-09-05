@@ -55,7 +55,11 @@ public class WikiLinkDisplay {
     }
     
     public func assembleWikiLink(target: WikiLinkTarget) -> String {
-        return prefix + target.formatWikiLink(format: format) + suffix
+        if prefix.isEmpty && format == .fileName && suffix == ".html" && target.hasPath {
+            return "../" + target.formatWikiLink(format: format) + suffix
+        } else {
+            return prefix + target.formatWikiLink(format: format) + suffix
+        }
     }
     
     /// Create a wiki link, based on the wiki parms.
