@@ -2,7 +2,7 @@ Title:  Pound Signs but no Headings
 
 Seq:    3.1
 
-Body: 
+Body:
 
 The following code should not produce any headings. 
 
@@ -11,6 +11,12 @@ Cabin #1 or #2 $65/night.
 #1 no pets, 20 amp electrical, can park trailer there.   
 #2 pets OK.  $20 pet fee
 arrive before 4:30PM on Friday.
+
+The following lines should be interpreted as headings. 
+
+# 1 no pets, 20 amp electrical, can park trailer there.   
+# 2 pets OK.  $20 pet fee
+# 2023-09-06 Something important happens
 
 And what happens now?
 

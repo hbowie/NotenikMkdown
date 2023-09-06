@@ -58,7 +58,7 @@ public class MkdownParser {
 
     var phase:     MkdownLinePhase = .leadingPunctuation
     var spaceCount = 0
-    var charFollowingHashMarks: Character = " "
+    var charFollowingHashMarks: Character? = nil
     
     var leadingNumber = false
     var leadingNumberAndPeriod = false
@@ -361,11 +361,14 @@ public class MkdownParser {
                     }
                 } else if nextLine.hashCount > 0 {
                     if char.isWhitespace {
+                        charFollowingHashMarks = char
                         continue
-                    } else if char == "#" {
+                    } else if char == "#" && charFollowingHashMarks == nil {
                         _ = nextLine.incrementHashCount()
                     } else {
-                        charFollowingHashMarks = char
+                        if charFollowingHashMarks == nil {
+                            charFollowingHashMarks = char
+                        }
                         phase = .text
                     }
                 } else if codeFenced {
@@ -632,7 +635,7 @@ public class MkdownParser {
         mdin.setIndex(.endText, to: .next)
         phase = .leadingPunctuation
         spaceCount = 0
-        charFollowingHashMarks = " "
+        charFollowingHashMarks = nil
         if linkLabelPhase != .linkEnd {
             linkLabelPhase = .na
             angleBracketsUsed = false
@@ -740,10 +743,10 @@ public class MkdownParser {
             }
         } else if nextLine.horizontalRule {
             nextLine.makeHorizontalRule()
-        } else if nextLine.hashCount >= 1 && nextLine.hashCount <= 6 && nextLine.textFound &&
+        } else if nextLine.hashCount >= 1 && nextLine.hashCount <= 6 && nextLine.textFound && charFollowingHashMarks != nil &&
                     (nextLine.hashCount > 1 ||
-                        charFollowingHashMarks.isWhitespace ||
-                        !charFollowingHashMarks.isNumber) {
+                        charFollowingHashMarks!.isWhitespace ||
+                        !charFollowingHashMarks!.isNumber) {
             nextLine.makeHeading(level: nextLine.hashCount, headingNumbers: &headingNumbers)
         } else if nextLine.hashCount > 0 {
             mdin.setIndex(.startText, to: .startLine)
