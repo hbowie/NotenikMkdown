@@ -12,6 +12,7 @@
 
 import Foundation
 
+/// A list of the wiki links found by the Mkdown Parser as part of its parse operation.
 public class WikiLinkList {
     
     public var links: [WikiLink] = []
@@ -27,6 +28,24 @@ public class WikiLinkList {
         newLink.originalTarget = wikiLink.originalTarget
         newLink.updatedTarget = wikiLink.updatedTarget
         newLink.targetFound = targetFound
+    }
+    
+    public var count: Int {
+        return links.count
+    }
+    
+    public var isEmpty: Bool {
+        return links.isEmpty
+    }
+    
+    public func addLink(_ link: WikiLink) {
+        links.append(link)
+    }
+    
+    public func addList(moreLinks: WikiLinkList) {
+        for wikiLink in moreLinks.links {
+            links.append(wikiLink)
+        }
     }
     
     public func display() {
