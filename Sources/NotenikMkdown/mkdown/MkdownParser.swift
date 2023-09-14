@@ -1078,7 +1078,6 @@ public class MkdownParser {
             return true
         case MkdownConstants.calendarCmd:
             nextLine.type = .calendar
-            print("MkdownParser Calendar command found")
             return true
         case MkdownConstants.collectionTocCmd:
             nextLine.type = .tocForCollection
@@ -2014,7 +2013,11 @@ public class MkdownParser {
                 writer.addID(anchorID)
                 writer.closeTag()
             } else {
-                writer.startListItem()
+                if checkBox.count == 3 {
+                    writer.startListItem(klass: "checklist-item")
+                } else {
+                    writer.startListItem()
+                }
                 if outlining == .bullets {
                     if outlineMod > outlineDepth {
                         writer.startDetails(klass: "list-item-\(outlineDepth)-details", openParm: "true")
