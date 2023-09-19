@@ -1,8 +1,8 @@
 Title:  Definition Lists
 
-Seq:    5.03
+Seq:    5.5
 
-Body: 
+Body:
 
 Here is an unordered list: 
 

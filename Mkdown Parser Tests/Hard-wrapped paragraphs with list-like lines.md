@@ -1,8 +1,8 @@
 Title:  Hard-wrapped paragraphs with list-like lines
 
-Seq:    5.4
+Seq:    5.6
 
-Code: 
+Code:
 
 In Markdown 1.0.0 and earlier. Version
 8. This line turns into a list item.
@@ -13,7 +13,8 @@ list item.
 Here's one with a bullet.
 * criminey.
 
-Body: 
+
+Body:
 
 In Markdown 1.0.0 and earlier. Version
 8. This line turns into a list item.

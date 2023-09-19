@@ -1,6 +1,6 @@
 Title:  Bullet Outlines
 
-Seq:    5.5
+Seq:    5.7
 
 Code:
 

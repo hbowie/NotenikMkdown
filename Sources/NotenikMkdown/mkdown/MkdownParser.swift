@@ -836,7 +836,7 @@ public class MkdownParser {
             nextLine.textFound = true
             nextLine.makeOrdinary()
             mdin.setIndex(.startText, to: .startNumber)
-            mdin.setIndex(.endText, to: .last)
+            mdin.setIndex(.endText, to: .next)
         }
 
         // Capture the text portion of the line, if it has any.
@@ -3335,7 +3335,7 @@ public class MkdownParser {
                     linkElementDiverter = .na
                 } else {
                     autoLink.append(chunk.text)
-                    if chunk.type == .atSign {
+                    if chunk.type == .atSign && autoLinkSep == " " {
                         autoLinkSep = "@"
                     } else if chunk.type == .colon {
                         autoLinkSep = ":"
@@ -3574,9 +3574,11 @@ public class MkdownParser {
             case .checkBoxContent:
                 break
             case .endCheckBoxChecked:
-                writer.write("&#9745; ")
+                writer.checkbox(checked: true)
+                // writer.write("&#9745; ")
             case .endCheckBoxUnchecked:
-                writer.write("&#9744; ")
+                writer.checkbox()
+                // writer.write("&#9744; ")
             default:
                 writer.append(chunk.text)
             }
