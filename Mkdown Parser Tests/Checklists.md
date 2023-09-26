@@ -2,11 +2,21 @@ Title:  Checklists
 
 Seq:    506
 
+Long Text:
+
+- [x] Checkbox 1
+- [ ] Checkbox 2
+
+
+Teaser: - [x] Checkbox 1
+- [ ] Checkbox 2
+
+
 Body:
 
-- [x] write the code
+- [X] write the code
 - [X] test the code
-- [ ] document
-	- [ ] document new functionality
-	- [ ] document changes
-- [] submit for release
+- [X] document
+	- [X] document new functionality
+	- [X] document changes
+- [ ] submit for release

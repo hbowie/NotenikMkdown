@@ -1400,6 +1400,7 @@ public class MkdownParser {
         outlineDepth = 0
         openDetails = [false, false, false, false, false, false, false]
         openBlocks = MkdownBlockStack()
+        checkBoxCount = 0
         
         mainLineIndex = 0
         tocLineIndex = 0
@@ -3574,14 +3575,50 @@ public class MkdownParser {
             case .checkBoxContent:
                 break
             case .endCheckBoxChecked:
-                writer.checkbox(checked: true)
-                // writer.write("&#9745; ")
+                genCheckBox(checked: true)
             case .endCheckBoxUnchecked:
-                writer.checkbox()
-                // writer.write("&#9744; ")
+                genCheckBox(checked: false)
             default:
                 writer.append(chunk.text)
             }
+        }
+    }
+    
+    // Check Box Generation variables
+    var checkBoxCount = 0
+    var checkBoxCountStr: String {
+        return String(format: "%03d", checkBoxCount)
+    }
+    var checkBoxName: String {
+        return "checkbox-\(checkBoxCountStr)"
+    }
+    
+    func genCheckBox(checked: Bool) {
+        checkBoxCount += 1
+        if options.checkBoxMessageHandlerName.isEmpty {
+            if checked {
+                writer.write("&#9745; ")
+            } else {
+                writer.write("&#9744; ")
+            }
+        } else {
+            writer.checkbox(id: checkBoxName, name: checkBoxName, checked: checked)
+            writer.startScript()
+            let js = """
+            var _selector = document.querySelector('#\(checkBoxName)');
+            _selector.addEventListener('change', function(event) {
+                var _target = event.target
+                var message = (_target.checked) ? "\(MkdownConstants.checked)" : "\(MkdownConstants.unchecked)";
+                if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.\(options.checkBoxMessageHandlerName)) {
+                    window.webkit.messageHandlers.\(options.checkBoxMessageHandlerName).postMessage({
+                        "checkBoxNumber": \(checkBoxCountStr),
+                        "checkBoxState": message
+                    });
+                }
+            });
+            """
+            writer.append(js)
+            writer.finishScript()
         }
     }
     

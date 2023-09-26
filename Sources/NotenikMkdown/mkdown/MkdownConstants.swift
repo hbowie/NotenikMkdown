@@ -38,4 +38,7 @@ public struct MkdownConstants {
     public static let tagsOutlineCmd     = "tagsoutline"
     public static let teasersCmd         = "teasers"
     public static let tocCmd             = "toc"
+    
+    public static let checked            = "checked"
+    public static let unchecked          = "unchecked"
 }
