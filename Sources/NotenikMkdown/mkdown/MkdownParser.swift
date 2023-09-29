@@ -1492,6 +1492,7 @@ public class MkdownParser {
                 }
                 chunkAndWrite(line)
             case .horizontalRule:
+                outputChunks()
                 writer.horizontalRule()
             case .html:
                 thisLineIsHTML = true
