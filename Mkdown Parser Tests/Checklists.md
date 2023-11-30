@@ -1,6 +1,6 @@
 Title:  Checklists
 
-Seq:    506
+Seq:    507
 
 Long Text:
 
@@ -15,8 +15,8 @@ Teaser: - [x] Checkbox 1
 Body:
 
 - [X] write the code
-- [X] test the code
+- [ ] test the code
 - [X] document
 	- [X] document new functionality
-	- [ ] document changes
+	- [X] document changes
 - [ ] submit for release

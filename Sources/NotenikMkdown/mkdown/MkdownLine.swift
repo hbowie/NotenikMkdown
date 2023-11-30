@@ -103,7 +103,17 @@ class MkdownLine {
     }
     
     var endsWithLineBreak: Bool {
-        return type != .blank && type != .code && trailingSpaceCount >= 2
+        guard trailingSpaceCount >= 2 else { return false }
+        switch type {
+        case .blank: 
+            return false
+        case .code: 
+            return false
+        case .tableData, .tableDelims, .tableHeader:
+            return false
+        default: 
+            return true
+        }
     }
     
     func makeCode() {
