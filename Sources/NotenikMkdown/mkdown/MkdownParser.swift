@@ -3591,9 +3591,10 @@ public class MkdownParser {
         return String(format: "%03d", checkBoxCount)
     }
     var checkBoxName: String {
-        return "checkbox-\(checkBoxCountStr)"
+        return "ckbox\(checkBoxCountStr)"
     }
     
+    /// Check box generation.
     func genCheckBox(checked: Bool) {
         checkBoxCount += 1
         if options.checkBoxMessageHandlerName.isEmpty {
@@ -3612,7 +3613,7 @@ public class MkdownParser {
                 var message = (_target.checked) ? "\(MkdownConstants.checked)" : "\(MkdownConstants.unchecked)";
                 if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.\(options.checkBoxMessageHandlerName)) {
                     window.webkit.messageHandlers.\(options.checkBoxMessageHandlerName).postMessage({
-                        "checkBoxNumber": \(checkBoxCountStr),
+                        "checkBoxNumber": "\(checkBoxCountStr)",
                         "checkBoxState": message
                     });
                 }
