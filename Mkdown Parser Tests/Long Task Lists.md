@@ -2,6 +2,8 @@ Title:  Long Task Lists
 
 Seq:    508
 
+Status: 0 - Idea
+
 Body:
 
 This is a checklist with more than ten items. 
@@ -14,9 +16,9 @@ This is a checklist with more than ten items.
 + [X] Line 6
 + [X] Line 7
 + [ ] Line 8
-+ [X] Line 9
++ [ ] Line 9
 + [X] Line 10
 + [ ] Line 11
 + [X] Line 12
-+ [X] Line 13
-+ [ ] Line 14
++ [ ] Line 13
++ [X] Line 14

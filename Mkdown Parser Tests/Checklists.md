@@ -18,5 +18,5 @@ Body:
 - [ ] test the code
 - [X] document
 	- [X] document new functionality
-	- [X] document changes
+	- [ ] document changes
 - [ ] submit for release
