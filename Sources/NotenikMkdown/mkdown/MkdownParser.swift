@@ -1073,6 +1073,9 @@ public class MkdownParser {
         
         exposeMarkdownCommand(command)
         switch command {
+        case MkdownConstants.attachmentsCmd:
+            nextLine.type = .attachments
+            return true
         case MkdownConstants.biblioCmd:
             nextLine.type = .biblio
             return true
@@ -1471,6 +1474,11 @@ public class MkdownParser {
             
             // Take appropriate action based on type of line.
             switch line.type {
+            case .attachments:
+                if mkdownContext != nil {
+                    writer.spaceBeforeBlock()
+                    writer.writeLine(mkdownContext!.mkdownAttachments())
+                }
             case .biblio:
                 if mkdownContext != nil {
                     writer.spaceBeforeBlock()

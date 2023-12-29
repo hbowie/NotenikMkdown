@@ -20,6 +20,7 @@ public struct MkdownConstants {
     //
     //-------------------------------------------------------------
     
+    public static let attachmentsCmd     = "attachments"
     public static let biblioCmd          = "biblio"
     public static let calendarCmd        = "calendar"
     public static let collectionTocCmd   = "collectiontoc"
