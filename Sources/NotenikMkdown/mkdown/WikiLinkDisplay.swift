@@ -63,17 +63,17 @@ public class WikiLinkDisplay {
     }
     
     /// Create a wiki link, based on the wiki parms.
-    public func assembleWikiLink(title: String) -> String {
-        return prefix + formatWikiLink(title) + suffix
+    public func assembleWikiLink(idBasis: String) -> String {
+        return prefix + formatWikiLink(idBasis) + suffix
     }
     
     /// Convert a title to something that can be used in a link.
-    public func formatWikiLink(_ title: String) -> String {
+    public func formatWikiLink(_ idBasis: String) -> String {
         switch format {
         case .common:
-            return StringUtils.toCommon(title)
+            return StringUtils.toCommon(idBasis)
         case .fileName:
-            return StringUtils.toCommonFileName(title)
+            return StringUtils.toCommonFileName(idBasis)
         }
     }
     

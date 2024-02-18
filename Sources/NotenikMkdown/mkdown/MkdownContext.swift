@@ -17,8 +17,11 @@ import Foundation
 /// the display of a Note whose Markdown is being parsed.
 public protocol MkdownContext {
     
+    /// Let the context figure out the derived fields. 
+    func setTitleToParse(text: String, shortID: String)
+    
     /// Set the Title of the Note whose Markdown text is to be parsed.
-    func setTitleToParse(title: String, shortID: String)
+    func setTitleToParse(id: String, text: String, fileName: String, shortID: String)
     
     /// Expose the usage of a Markdown command found within the page.
     func exposeMarkdownCommand(_ command: String)
