@@ -3,7 +3,7 @@
 //  NotenikMkdown
 //
 //  Created by Herb Bowie on 2/25/20.
-//  Copyright © 2020 - 2023 Herb Bowie (https://hbowie.net)
+//  Copyright © 2020 - 2024 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -2253,6 +2253,8 @@ public class MkdownParser {
                     addCharAsChunk(char: char, type: .ampersand, lastChar: lastChar, line: line)
                 case "!":
                     addCharAsChunk(char: char, type: .exclamationMark, lastChar: lastChar, line: line)
+                case "~":
+                    addCharAsChunk(char: char, type: .tilde, lastChar: lastChar, line: line)
                 case "|":
                     if line.type == .tableHeader {
                         addCharAsChunk(char: char, type: .tableHeaderPipe, lastChar: lastChar, line: line)
@@ -2446,6 +2448,21 @@ public class MkdownParser {
                 if withinMathSpan { break }
                 if withinTag { break }
                 scanForEmphasisClosure(forChunkAt: index)
+            case .tilde:
+                if chunk.lineType == .code { break }
+                if withinCodeSpan { break }
+                if withinMathSpan { break }
+                if withinTag { break }
+                scanForStrikethrough(forChunkAt: index)
+                if chunk.type == .tilde {
+                    scanForSubscript(forChunkAt: index)
+                }
+            case .caret:
+                if chunk.lineType == .code { break }
+                if withinCodeSpan { break }
+                if withinMathSpan { break }
+                if withinTag { break }
+                scanForSuperscript(forChunkAt: index)
             case .leftAngleBracket:
                 if chunk.lineType == .code { break }
                 if withinCodeSpan { break }
@@ -2472,8 +2489,10 @@ public class MkdownParser {
                 if withinCodeSpan { break }
                 if withinMathSpan { break }
                 if withinTag { break }
-                scanForLinkElements(forChunkAt: index)
                 scanForCheckBox(forChunkAt: index)
+                if chunk.type == .leftSquareBracket {
+                    scanForLinkElements(forChunkAt: index)
+                }
             case .backtickQuote:
                 scanForCodeClosure(forChunkAt: index)
                 if chunk.type == .startCode {
@@ -2814,6 +2833,107 @@ public class MkdownParser {
             }
         }
         return false
+    }
+    
+    /// See if this tilde character marks the start of a subscript.
+    /// - Parameter forChunkAt: Index to the chunk containing the first tilde.
+    func scanForSubscript(forChunkAt: Int) {
+        start = forChunkAt
+        startChunk = chunks[start]
+        var next = start + 1
+        var looking = true
+        var content = false
+        while next < chunks.count && looking {
+            let nextChunk = chunks[next]
+            if nextChunk.type == startChunk.type {
+                if content {
+                    startChunk.type = .startSubscript
+                    nextChunk.type = .endSubscript
+                }
+                looking = false
+            } else {
+                content = true
+                if nextChunk.startsWithSpace || nextChunk.endsWithSpace || nextChunk.text.contains(" ") {
+                    looking = false
+                }
+            }
+            next += 1
+        }
+    }
+    
+    /// See if this caret character marks the start of a superscript.
+    /// - Parameter forChunkAt: Index to the chunk containing the first caret.
+    func scanForSuperscript(forChunkAt: Int) {
+        start = forChunkAt
+        startChunk = chunks[start]
+        var next = start + 1
+        var looking = true
+        var content = false
+        while next < chunks.count && looking {
+            let nextChunk = chunks[next]
+            if nextChunk.type == startChunk.type {
+                if content {
+                    startChunk.type = .startSuperscript
+                    nextChunk.type = .endSuperscript
+                }
+                looking = false
+            } else {
+                content = true
+                if nextChunk.startsWithSpace || nextChunk.endsWithSpace || nextChunk.text.contains(" ") {
+                    looking = false
+                }
+            }
+            next += 1
+        }
+    }
+    
+    /// Scan for closing tildes to form a strikethrough.
+    func scanForStrikethrough(forChunkAt: Int) {
+        start = forChunkAt
+        startChunk = chunks[start]
+        var next = start + 1
+        consecutiveStartCount = 1
+        leftToClose = 1
+        consecutiveCloseCount = 0
+        matchStart = -1
+        var struckCount = 0
+        while leftToClose > 0 && next < chunks.count {
+            let nextChunk = chunks[next]
+            if nextChunk.type == startChunk.type {
+                if consecutiveStartCount == 1 && next == (start + 1) {
+                    consecutiveStartCount = 2
+                    leftToClose = 2
+                } else if consecutiveStartCount == 2 && struckCount > 0 && consecutiveCloseCount == 0 {
+                    consecutiveCloseCount = 1
+                    leftToClose = 1
+                    matchStart = next
+                } else if consecutiveStartCount == 2
+                            && struckCount > 0
+                            && consecutiveCloseCount == 1
+                            && next == (matchStart + 1) {
+                    consecutiveCloseCount = 2
+                    leftToClose = 0
+                    processStrikethroughClosure()
+                }
+            } else if consecutiveStartCount == 2 && consecutiveCloseCount == 0 {
+                struckCount += 1
+            } else if consecutiveStartCount == 2 && consecutiveCloseCount == 1 {
+                struckCount += 2
+                consecutiveCloseCount = 0
+                leftToClose = 2
+            } else {
+                leftToClose = 0
+            }
+            next += 1
+        }
+    }
+    
+    /// Let's close things up.
+    func processStrikethroughClosure() {
+        startChunk.type = .startStrikethrough1
+        chunks[start + 1].type = .startStrikethrough2
+        chunks[matchStart].type = .endStrikethrough1
+        chunks[matchStart + 1].type = .endStrikethrough2
     }
     
     /// If we have an asterisk or an underline, look for the closing symbols to end the emphasis span.
@@ -3416,6 +3536,22 @@ public class MkdownParser {
                 writer.finishStrong()
             case .endStrong2:
                 break
+            case .startStrikethrough1:
+                writer.startStrikethrough()
+            case .startStrikethrough2:
+                break
+            case .endStrikethrough1:
+                break
+            case .endStrikethrough2:
+                writer.finishStrikethrough()
+            case .startSubscript:
+                writer.startSubscript()
+            case .endSubscript:
+                writer.finishSubscript()
+            case .startSuperscript:
+                writer.startSuperscript()
+            case .endSuperscript:
+                writer.finishSuperscript()
             case .startFootnoteLabel1:
                 break
             case .startFootnoteLabel2:

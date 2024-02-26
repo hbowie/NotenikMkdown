@@ -122,4 +122,17 @@ enum MkdownChunkType {
     case checkBoxContent
     case endCheckBoxChecked
     case endCheckBoxUnchecked
+    
+    case tilde
+    
+    case startStrikethrough1
+    case startStrikethrough2
+    case endStrikethrough1
+    case endStrikethrough2
+    
+    case startSubscript
+    case endSubscript
+    
+    case startSuperscript
+    case endSuperscript
 }

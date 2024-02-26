@@ -507,6 +507,7 @@ class MkdownLine {
         if leadingPipe {
             print("Leading Pipe Char, Pipe Count = \(pipeCount), Only Table Delim Chars? \(onlyTableDelimChars)")
         }
+        print("Checkbox: '\(checkBox)'")
         print("Text: '\(text)'")
         print("List Pointers Count: \(blocks.listPointers.count)")
         if columnStyles.count > 0 {

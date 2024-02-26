@@ -20,5 +20,5 @@ This is a checklist with more than ten items.
 + [X] Line 10
 + [ ] Line 11
 + [X] Line 12
-+ [ ] Line 13
++ [X] Line 13
 + [X] Line 14

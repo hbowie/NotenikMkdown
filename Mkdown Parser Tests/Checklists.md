@@ -15,7 +15,7 @@ Teaser: - [x] Checkbox 1
 Body:
 
 - [X] write the code
-- [ ] test the code
+- [X] test the code
 - [X] document
 	- [X] document new functionality
 	- [ ] document changes
