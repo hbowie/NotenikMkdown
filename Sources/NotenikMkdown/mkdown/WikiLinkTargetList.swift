@@ -59,19 +59,19 @@ public class WikiLinkTargetList: CustomStringConvertible, Collection, Sequence {
         list = []
     }
     
-    /// Examine a line of text, separating it into Note titles, with
-    /// paired semicolons serving as the separators. 
+    /// Examine a line of text, separating it into Note identifiers, with
+    /// paired semicolons serving as the separators.
     public func append(_ line: String) {
         var pendingSpaces = 0
         var semiStash = ""
-        var nextTitle = ""
+        var nextNoteIdBasis = ""
         for c in line {
             if c == ";" {
                 semiStash.append(c)
                 if semiStash == ";;" {
-                    if !nextTitle.isEmpty {
-                        add(title: nextTitle)
-                        nextTitle = ""
+                    if !nextNoteIdBasis.isEmpty {
+                        add(noteIdBasis: nextNoteIdBasis)
+                        nextNoteIdBasis = ""
                     }
                     semiStash = ""
                     pendingSpaces = 0
@@ -79,7 +79,7 @@ public class WikiLinkTargetList: CustomStringConvertible, Collection, Sequence {
                 continue
             }
             if semiStash == ";" {
-                nextTitle.append(semiStash)
+                nextNoteIdBasis.append(semiStash)
                 semiStash = ""
             }
             if c.isWhitespace {
@@ -87,21 +87,21 @@ public class WikiLinkTargetList: CustomStringConvertible, Collection, Sequence {
                 continue
             }
             if pendingSpaces > 0 {
-                nextTitle.append(" ")
+                nextNoteIdBasis.append(" ")
                 pendingSpaces = 0
             }
-            nextTitle.append(c)
+            nextNoteIdBasis.append(c)
         }
-        if !nextTitle.isEmpty {
-            add(title: nextTitle)
+        if !nextNoteIdBasis.isEmpty {
+            add(noteIdBasis: nextNoteIdBasis)
         }
     }
     
     /// Add another title, but don't allow duplicate IDs, and keep the list sorted
     /// by the lowest common denominator representation.
     /// - Parameter title: The Title of a Note.
-    public func add(title: String) {
-        let newPointer = WikiLinkTarget(title)
+    public func add(noteIdBasis: String) {
+        let newPointer = WikiLinkTarget(noteIdBasis)
         var index = 0
         while index < list.count && newPointer > list[index] {
             index += 1
@@ -115,8 +115,8 @@ public class WikiLinkTargetList: CustomStringConvertible, Collection, Sequence {
         }
     }
     
-    public func remove(title: String) {
-        let pointerToRemove = WikiLinkTarget(title)
+    public func remove(noteIdBasis: String) {
+        let pointerToRemove = WikiLinkTarget(noteIdBasis)
         var index = 0
         while index < list.count && pointerToRemove.pathSlashID != list[index].pathSlashID {
             index += 1

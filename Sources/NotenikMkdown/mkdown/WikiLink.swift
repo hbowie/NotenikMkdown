@@ -38,7 +38,7 @@ public class WikiLink: Comparable, CustomStringConvertible, Equatable, Identifia
         fromTarget = WikiLinkTarget(path: path, item: item)
     }
     
-    // Original target Note title.
+    // Original target Note id.
     var _to = WikiLinkTarget()
     public var originalTarget: WikiLinkTarget {
         get {
