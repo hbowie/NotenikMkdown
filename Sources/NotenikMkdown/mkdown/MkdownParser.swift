@@ -793,11 +793,27 @@ public class MkdownParser {
             lastLine.makeTableLine(requestedType: .tableHeader, columnStyles: columnStyles)
             nextLine.makeTableLine(requestedType: .tableDelims, columnStyles: columnStyles)
             tableStarted = true
-        } else if nextLine.line.hasPrefix("{{")
-                    || nextLine.line.hasPrefix("[")
-                    || nextLine.line.hasPrefix("{:")
-                    || nextLine.line.hasPrefix("![[") {
-            _ = checkForCommandClosing()
+        } else {
+            let cmdLine = MkdownCommandLine()
+            nextLine.commandInfo = cmdLine.checkLine(nextLine.line)
+            if nextLine.commandInfo.validCommand {
+                exposeMarkdownCommand(nextLine.commandInfo.command)
+                nextLine.type = nextLine.commandInfo.lineType
+                if nextLine.type == .tableOfContents {
+                    tocFound = true
+                }
+                if nextLine.type == .include {
+                    if mkdownContext != nil {
+                        textToInclude = mkdownContext!.mkdownInclude(item: nextLine.commandInfo.mods,
+                                                                     style: nextLine.commandInfo.includeStyle)
+                    }
+                }
+                if nextLine.type == .metadata {
+                    codeFenced = true
+                    codeFenceChar = "`"
+                    codeFenceRepeatCount = 99
+                }
+            }
         }
         
         // Check for lines of HTML
@@ -980,183 +996,6 @@ public class MkdownParser {
         return closed
     }
     
-    /// Performed as part of Finish Line processing.
-    func checkForCommandClosing() -> Bool {
-
-        var prefix = ""
-        var prefixComplete = false
-        var command = ""
-        var commandComplete = false
-        var includeStyle = ""
-        var styleComplete = false
-        var mods = ""
-        var modsComplete = false
-        var suffix = ""
-        var digit1: Character = " "
-        var digit2: Character = " "
-        for char in nextLine.line {
-            
-            if !prefixComplete {
-                if char == "[" || char == "{" || char == ":" || char == "!" {
-                    prefix.append(char)
-                } else {
-                    prefixComplete = true
-                    if prefix == "![[" {
-                        command = "include"
-                        commandComplete = true
-                        styleComplete = true
-                    }
-                }
-            }
-            
-            if prefixComplete && !commandComplete {
-                if char == "]" || char == "}" {
-                    commandComplete = true
-                    styleComplete = true
-                    modsComplete = true
-                } else if char == ":" {
-                    commandComplete = true
-                    styleComplete = true
-                } else if char == "-" && command == "include" {
-                    commandComplete = true
-                } else if !char.isWhitespace && char != "-" {
-                    command.append(char.lowercased())
-                }
-            }
-            
-            if prefixComplete && commandComplete && !styleComplete {
-                if char == "]" || char == "}" {
-                    styleComplete = true
-                    modsComplete = true
-                } else if char == ":" {
-                    styleComplete = true
-                } else if !char.isWhitespace && char != "-" {
-                    includeStyle.append(char.lowercased())
-                }
-            }
-            
-            if prefixComplete && commandComplete && styleComplete && !modsComplete {
-                if char == ":" {
-                    // do nothing
-                } else if char == "]" || char == "}" {
-                    modsComplete = true
-                } else if char.isWhitespace && mods.isEmpty {
-                    // do nothing 
-                } else {
-                    mods.append(char)
-                    if char == "-" {
-                        // do nothing
-                    } else if char.isNumber && digit1 != " " {
-                        digit2 = char
-                    } else if char.isNumber {
-                        digit1 = char
-                    }
-                }
-            }
-            
-            if prefixComplete && commandComplete && styleComplete && modsComplete {
-                if !char.isWhitespace {
-                    suffix.append(char)
-                }
-            }
-            
-        } // end of chars in line
-        
-        // See if we have a good prefix and a matching suffix.
-        guard (prefix == "{:" && suffix == "}")
-                || (prefix == "[[" && suffix == "]]")
-                || (prefix == "[" && suffix == "]")
-                || (prefix == "{{" && suffix == "}}")
-                || (prefix == "![[" && suffix == "]]") else {
-            return false
-        }
-        
-        exposeMarkdownCommand(command)
-        switch command {
-        case MkdownConstants.attachmentsCmd:
-            nextLine.type = .attachments
-            return true
-        case MkdownConstants.biblioCmd:
-            nextLine.type = .biblio
-            return true
-        case MkdownConstants.calendarCmd:
-            nextLine.type = .calendar
-            return true
-        case MkdownConstants.collectionTocCmd:
-            nextLine.type = .tocForCollection
-            nextLine.tocLevelStart = digit1
-            if digit2.isNumber {
-                nextLine.tocLevelEnd = digit2
-            }
-            return true
-        case MkdownConstants.tocCmd:
-            nextLine.type = .tableOfContents
-            tocFound = true
-            nextLine.tocLevelStart = digit1
-            if digit2.isNumber {
-                nextLine.tocLevelEnd = digit2
-            }
-            return true
-        case MkdownConstants.indexCmd:
-            nextLine.type = .index
-            return true
-        case MkdownConstants.tagsCloudCmd:
-            nextLine.type = .tagsCloud
-            nextLine.commandMods = mods
-            return true
-        case MkdownConstants.tagsOutlineCmd:
-            nextLine.type = .tagsOutline
-            nextLine.commandMods = mods
-            return true
-        case MkdownConstants.includeCmd:
-            nextLine.type = .include
-            if mkdownContext != nil {
-                textToInclude = mkdownContext!.mkdownInclude(item: mods, style: includeStyle)
-            }
-            return true
-        case MkdownConstants.teasersCmd:
-            nextLine.type = .teasers
-            return true
-        case MkdownConstants.searchCmd:
-            nextLine.type = .search
-            nextLine.commandMods = mods
-            return true
-        case MkdownConstants.sortTableCmd:
-            nextLine.type = .sortTable
-            nextLine.commandMods = mods
-            return true
-        case MkdownConstants.headerCmd:
-            nextLine.type = .header
-            return true
-        case MkdownConstants.footerCmd:
-            nextLine.type = .footer
-            return true
-        case MkdownConstants.navCmd:
-            nextLine.type = .nav
-            return true
-        case MkdownConstants.metadataCmd:
-            nextLine.type = .metadata
-            codeFenced = true
-            codeFenceChar = "`"
-            codeFenceRepeatCount = 99
-            return true
-        case MkdownConstants.randomCmd:
-            nextLine.type = .random
-            nextLine.commandMods = mods
-            return true
-        case MkdownConstants.outlineBulletsCmd:
-            nextLine.type = .outlineBullets
-            nextLine.commandMods = mods
-            return true
-        case MkdownConstants.outlineHeadingsCmd:
-            nextLine.type = .outlineHeadings
-            nextLine.commandMods = mods
-            return true
-        default:
-            return false
-        }
-    }
-    
     /// Figure out what to do with the next character found as part of a link label definition. 
     func linkLabelExamineChar(_ char: Character) {
          
@@ -1334,8 +1173,8 @@ public class MkdownParser {
         var lastHeadingLevelRequested = 999
         for line in lines {
             if line.type == .tableOfContents {
-                firstHeadingLevelRequested = line.tocLevelStartInt
-                lastHeadingLevelRequested = line.tocLevelEndInt
+                firstHeadingLevelRequested = line.commandInfo.tocLevelStartInt
+                lastHeadingLevelRequested = line.commandInfo.tocLevelEndInt
                 tocFound = true
                 continue
             }
@@ -1487,7 +1326,7 @@ public class MkdownParser {
             case .calendar:
                 if mkdownContext != nil {
                     writer.spaceBeforeBlock()
-                    writer.writeLine(mkdownContext!.mkdownCalendar(mods: line.commandMods))
+                    writer.writeLine(mkdownContext!.mkdownCalendar(mods: line.commandInfo.mods))
                 }
             case .code:
                 chunkAndWrite(line)
@@ -1541,11 +1380,11 @@ public class MkdownParser {
                 }
             case .search:
                 if mkdownContext != nil {
-                    writer.writeLine(mkdownContext!.mkdownSearch(siteURL: line.commandMods))
+                    writer.writeLine(mkdownContext!.mkdownSearch(siteURL: line.commandInfo.mods))
                 }
             case .sortTable:
                 if mkdownContext != nil {
-                    tableID = line.commandMods
+                    tableID = line.commandInfo.mods
                     if tableID.isEmpty {
                         tableID = "sortable-table"
                     }
@@ -1554,11 +1393,11 @@ public class MkdownParser {
                 }
             case .tagsCloud:
                 if mkdownContext != nil {
-                    writer.writeLine(mkdownContext!.mkdownTagsCloud(mods: line.commandMods))
+                    writer.writeLine(mkdownContext!.mkdownTagsCloud(mods: line.commandInfo.mods))
                 }
             case .tagsOutline:
                 if mkdownContext != nil {
-                    writer.writeLine(mkdownContext!.mkdownTagsOutline(mods: line.commandMods))
+                    writer.writeLine(mkdownContext!.mkdownTagsOutline(mods: line.commandInfo.mods))
                 }
             case .teasers:
                 if mkdownContext != nil {
@@ -1568,13 +1407,13 @@ public class MkdownParser {
                 if mkdownContext != nil {
                     writer.writeLine(
                         mkdownContext!.mkdownCollectionTOC(
-                            levelStart: line.tocLevelStartInt,
-                            levelEnd: line.tocLevelEndInt,
+                            levelStart: line.commandInfo.tocLevelStartInt,
+                            levelEnd: line.commandInfo.tocLevelEndInt,
                             details: outlining == .bullets))
                 }
             case .random:
                 if mkdownContext != nil {
-                    writer.writeLine(mkdownContext!.mkdownRandomNote(klassNames: line.commandMods))
+                    writer.writeLine(mkdownContext!.mkdownRandomNote(klassNames: line.commandInfo.mods))
                 }
             case .math:
                 if line.startMathBlock {
@@ -1590,13 +1429,13 @@ public class MkdownParser {
             case .outlineBullets:
                 outlining = .bullets
                 outlineDepth = 0
-                if let modInt = Int(line.commandMods) {
+                if let modInt = Int(line.commandInfo.mods) {
                     outlineMod = modInt
                 }
             case .outlineHeadings:
                 outlining = .headings
                 outlineDepth = 0
-                if let modInt = Int(line.commandMods) {
+                if let modInt = Int(line.commandInfo.mods) {
                     outlineMod = modInt
                 }
                 openDetails = [false, false, false, false, false, false, false]
@@ -3957,6 +3796,8 @@ public class MkdownParser {
         case .common:
             return target.pathSlashID
         case .fileName:
+            return target.pathSlashFilename
+        case .mmdID:
             return target.pathSlashFilename
         }
     }

@@ -85,6 +85,8 @@ public class WikiLinkWrangler {
             return StringUtils.toCommon(title)
         case .fileName:
             return StringUtils.toCommonFileName(title)
+        case .mmdID:
+            return StringUtils.autoID(title)
         }
     }
 }

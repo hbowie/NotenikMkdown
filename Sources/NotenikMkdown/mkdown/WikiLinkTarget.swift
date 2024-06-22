@@ -84,6 +84,8 @@ public class WikiLinkTarget: Comparable, CustomStringConvertible, Equatable, Ide
             return pathSlashID
         case .fileName:
             return pathSlashFilename
+        case .mmdID:
+            return pathSlashFilename
         }
     }
     

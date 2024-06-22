@@ -11,4 +11,5 @@
 public enum WikiLinkFormat {
     case common
     case fileName
+    case mmdID
 }

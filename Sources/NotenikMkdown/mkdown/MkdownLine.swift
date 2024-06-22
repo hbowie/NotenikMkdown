@@ -13,6 +13,7 @@ import Foundation
 
 /// One line in Markdown syntax.
 class MkdownLine {
+    
     var line = ""
     
     var type: MkdownLineType = .blank
@@ -51,26 +52,7 @@ class MkdownLine {
     
     var columnStyles: [String] = []
     
-    var commandMods = ""
-    
-    var tocLevelStart: Character = " "
-    var tocLevelEnd: Character = "9"
-    var tocLevelStartInt: Int {
-        let int = Int(String(tocLevelStart))
-        if int != nil && int! >= 0 && int! <= 9 {
-            return int!
-        } else {
-            return 0
-        }
-    }
-    var tocLevelEndInt: Int {
-        let int = Int(String(tocLevelEnd))
-        if int != nil && int! >= 0 && int! <= 9 {
-            return int!
-        } else {
-            return 999
-        }
-    }
+    var commandInfo = MkdownCommandInfo()
     
     var tagsIncludeUntagged = true
     

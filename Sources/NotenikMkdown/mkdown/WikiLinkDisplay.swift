@@ -74,6 +74,8 @@ public class WikiLinkDisplay {
             return StringUtils.toCommon(idBasis)
         case .fileName:
             return StringUtils.toCommonFileName(idBasis)
+        case .mmdID:
+            return StringUtils.autoID(idBasis)
         }
     }
     

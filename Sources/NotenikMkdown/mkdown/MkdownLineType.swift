@@ -9,7 +9,7 @@
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
 //
 
-enum MkdownLineType {
+public enum MkdownLineType {
     case attachments
     case blank
     case biblio
