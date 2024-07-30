@@ -26,4 +26,12 @@ public class MkdownCounts {
     public init() {
         
     }
+    
+    public func display() {
+        print("MkdownCounts.display")
+        print("  - size = \(size)")
+        print("  - lines = \(lines)")
+        print("  - words = \(words)")
+        print("  - text = \(text)")
+    }
 }
