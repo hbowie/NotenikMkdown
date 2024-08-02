@@ -41,6 +41,7 @@ public enum MkdownLineType {
     case ordinaryText
     case outlineBullets
     case outlineHeadings
+    case quoteFrom
     case random
     case search
     case tableHeader

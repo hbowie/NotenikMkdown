@@ -83,6 +83,16 @@ public class MkdownCommandLine {
                 }
             }
             
+            if prefixComplete && commandComplete && styleComplete && info.command == MkdownConstants.quoteFromCmd {
+                if info.parms.isEmpty && (char.isWhitespace || char == ":") {
+                    // skip leading spacers
+                } else if char == "]" || char == "}" {
+                    // skip trailing delimiters
+                } else {
+                    info.parms.append(char)
+                }
+            }
+            
             if prefixComplete && commandComplete && styleComplete && !modsComplete {
                 if char == ":" {
                     // do nothing
@@ -145,6 +155,9 @@ public class MkdownCommandLine {
             info.validCommand = true
         case MkdownConstants.indexCmd:
             info.lineType = .index
+            info.validCommand = true
+        case MkdownConstants.quoteFromCmd:
+            info.lineType = .quoteFrom
             info.validCommand = true
         case MkdownConstants.tagsCloudCmd:
             info.lineType = .tagsCloud

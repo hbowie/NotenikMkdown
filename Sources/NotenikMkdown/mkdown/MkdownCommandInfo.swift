@@ -19,6 +19,7 @@ public class MkdownCommandInfo {
     public var command = ""
     public var includeStyle = ""
     public var mods = ""
+    public var parms = ""
     public var tocLevelStart: Character = " "
     public var tocLevelEnd: Character = "9"
     public var suffix = ""
