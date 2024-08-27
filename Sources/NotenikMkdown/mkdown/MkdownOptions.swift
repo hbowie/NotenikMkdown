@@ -23,6 +23,7 @@ public class MkdownOptions {
     public var curlyApostrophes = true
     public var extLinksOpenInNewWindows = false
     public var checkBoxMessageHandlerName = ""
+    public var inlineHashtags = false
     
     public init() {
         

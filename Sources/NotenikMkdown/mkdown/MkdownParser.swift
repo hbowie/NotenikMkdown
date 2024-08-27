@@ -22,12 +22,6 @@ import NotenikUtils
 
 public class MkdownParser {
     
-    //-------------------------------------------------------------
-    //
-    // HTML class values
-    //
-    //-------------------------------------------------------------
-    
     // ===============================================================
     //
     // OVERALL PARSING STRATEGY
@@ -746,7 +740,7 @@ public class MkdownParser {
         } else if nextLine.hashCount >= 1 && nextLine.hashCount <= 6 && nextLine.textFound && charFollowingHashMarks != nil &&
                     (nextLine.hashCount > 1 ||
                         charFollowingHashMarks!.isWhitespace ||
-                        !charFollowingHashMarks!.isNumber) {
+                        (!charFollowingHashMarks!.isNumber && !options.inlineHashtags)) {
             nextLine.makeHeading(level: nextLine.hashCount, headingNumbers: &headingNumbers)
         } else if nextLine.hashCount > 0 {
             mdin.setIndex(.startText, to: .startLine)
@@ -2465,6 +2459,16 @@ public class MkdownParser {
                 if chunk.type == .startMath {
                     withinMathSpan = true
                 }
+            case .poundSign:
+                if !options.inlineHashtags { break }
+                if chunk.lineType == .code { break }
+                if withinCodeSpan { break }
+                if withinMathSpan { break }
+                if withinTag { break }
+                if nextIndex >= chunks.count { break }
+                if chunk.endsWithSpace { break }
+                if chunks[nextIndex].startsWithSpace { break }
+                _ = scanForHashtag(forChunkAt: index)
             case .backSlash:
                 if !options.mathJax { break }
                 if chunk.lineType == .code { break }
@@ -2752,6 +2756,38 @@ public class MkdownParser {
         }
         
         return false
+    }
+    
+    func scanForHashtag(forChunkAt: Int) -> Bool {
+
+        let firstChunk = chunks[forChunkAt]
+        let next = forChunkAt + 1
+        var allDigits = true
+        var hashTag = ""
+        
+        for char in chunks[next].text {
+            if hashTag.isEmpty && StringUtils.isDigit(char) {
+                break
+            } else if char.isWhitespace {
+                break
+            } else if char == "-" || char == "_" {
+                hashTag.append(char)
+            } else if char.isPunctuation {
+                break
+            } else {
+                hashTag.append(char)
+            }
+            if StringUtils.isAlpha(char) {
+                allDigits = false
+            }
+        }
+        if allDigits { return false }
+        if hashTag.isEmpty { return false }
+        if mkdownContext != nil {
+            mkdownContext!.addHashTag(hashTag)
+        }
+        firstChunk.type = .hashtag
+        return true
     }
     
     func scanForInlineTag(forChunkAt: Int) -> Bool {
@@ -3660,6 +3696,8 @@ public class MkdownParser {
                 genCheckBox(checked: true)
             case .endCheckBoxUnchecked:
                 genCheckBox(checked: false)
+            case.hashtag:
+                writer.spanConditional(value: chunk.text, klass: "hashtag", prefix: "", suffix: "")
             default:
                 writer.append(chunk.text)
             }

@@ -26,6 +26,9 @@ public protocol MkdownContext {
     /// Expose the usage of a Markdown command found within the page.
     func exposeMarkdownCommand(_ command: String)
     
+    /// Collect embedded hash tags found within the Markdown. 
+    func addHashTag(_ tag: String)
+    
     /// Given the title of one Note, return the (possibly renamed) title to be used. 
     func mkdownWikiLinkLookup(linkText: String) -> WikiLinkTarget?
     

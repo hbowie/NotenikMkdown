@@ -50,7 +50,9 @@ enum MkdownChunkType {
     case leftSquareBracket
     case rightSquareBracket
     case caret
+    
     case poundSign
+    case hashtag
     
     case leftParen
     case rightParen
