@@ -2762,20 +2762,28 @@ public class MkdownParser {
 
         let firstChunk = chunks[forChunkAt]
         let next = forChunkAt + 1
+        guard next < chunks.count else { return false }
+        let nextChunk = chunks[next]
         var allDigits = true
         var hashTag = ""
         
-        for char in chunks[next].text {
+        var hashtagLength = 0
+        var splitChunk = false
+        for char in nextChunk.text {
             if hashTag.isEmpty && StringUtils.isDigit(char) {
                 break
             } else if char.isWhitespace {
+                splitChunk = true
                 break
             } else if char == "-" || char == "_" {
                 hashTag.append(char)
+                hashtagLength += 1
             } else if char.isPunctuation {
+                splitChunk = true
                 break
             } else {
                 hashTag.append(char)
+                hashtagLength += 1
             }
             if StringUtils.isAlpha(char) {
                 allDigits = false
@@ -2784,9 +2792,28 @@ public class MkdownParser {
         if allDigits { return false }
         if hashTag.isEmpty { return false }
         if mkdownContext != nil {
-            mkdownContext!.addHashTag(hashTag)
+            firstChunk.hashtagLink = mkdownContext!.addHashTag(hashTag)
         }
+        let insertPosition = next + 1
         firstChunk.type = .hashtag
+        let hashtagEnd = MkdownChunk()
+        hashtagEnd.type = .hashtagEnd
+        if splitChunk {
+            let afterChunk = MkdownChunk()
+            let afterLength = nextChunk.text.count - hashtagLength
+            afterChunk.text = String(nextChunk.text.suffix(afterLength))
+            nextChunk.text = hashTag
+            if insertPosition >= chunks.count {
+                chunks.append(afterChunk)
+            } else {
+                chunks.insert(afterChunk, at: insertPosition)
+            }
+        }
+        if insertPosition >= chunks.count {
+            chunks.append(hashtagEnd)
+        } else {
+            chunks.insert(hashtagEnd, at: insertPosition)
+        }
         return true
     }
     
@@ -3132,6 +3159,7 @@ public class MkdownParser {
         var rightLabelBracket: MkdownChunk?
         var leftParen: MkdownChunk?
         var leftQuote: MkdownChunk?
+        var inlinePoundSign: MkdownChunk?
         var rightQuote: MkdownChunk?
         var rightParen: MkdownChunk?
         var lastChunk = MkdownChunk()
@@ -3158,6 +3186,8 @@ public class MkdownParser {
                 } else if (index == leftLabelBracketIndex + 1) {
                     poundSign = chunk
                     citationRef = true
+                } else {
+                    inlinePoundSign = chunk
                 }
             case .leftSquareBracket:
                 if index == forChunkAt + 1 {
@@ -3254,6 +3284,10 @@ public class MkdownParser {
         }
         
         if linkLooking { return }
+        
+        if inlinePoundSign != nil {
+            inlinePoundSign!.type = .onlyAPoundSign
+        }
         
         if footnoteRef {
             leftBracket1.type = .startFootnoteLabel1
@@ -3697,7 +3731,10 @@ public class MkdownParser {
             case .endCheckBoxUnchecked:
                 genCheckBox(checked: false)
             case.hashtag:
-                writer.spanConditional(value: chunk.text, klass: "hashtag", prefix: "", suffix: "")
+                writer.startLink(path: chunk.hashtagLink, klass: "hashtag")
+                writer.write(chunk.text)
+            case .hashtagEnd:
+                writer.finishLink()
             default:
                 writer.append(chunk.text)
             }

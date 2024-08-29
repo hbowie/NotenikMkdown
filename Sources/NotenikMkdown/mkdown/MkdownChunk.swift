@@ -16,6 +16,7 @@ class MkdownChunk {
     var text = ""
     var type: MkdownChunkType = .plaintext
     var lineType: MkdownLineType = .ordinaryText
+    var hashtagLink = ""
     var startsWithSpace = false
     var endsWithSpace = false
     

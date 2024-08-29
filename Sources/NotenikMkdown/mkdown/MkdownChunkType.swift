@@ -52,7 +52,9 @@ enum MkdownChunkType {
     case caret
     
     case poundSign
+    case onlyAPoundSign
     case hashtag
+    case hashtagEnd
     
     case leftParen
     case rightParen
