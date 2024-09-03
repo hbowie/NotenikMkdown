@@ -22,6 +22,7 @@ public struct MkdownConstants {
     
     public static let attachmentsCmd     = "attachments"
     public static let biblioCmd          = "biblio"
+    public static let bylineCmd          = "byline"
     public static let calendarCmd        = "calendar"
     public static let collectionTocCmd   = "collectiontoc"
     public static let footerCmd          = "footer"
@@ -43,4 +44,6 @@ public struct MkdownConstants {
     
     public static let checked            = "checked"
     public static let unchecked          = "unchecked"
+    
+    public static let bylineClass        = "byline"
 }

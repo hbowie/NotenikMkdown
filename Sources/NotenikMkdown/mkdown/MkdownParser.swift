@@ -1317,6 +1317,8 @@ public class MkdownParser {
                     writer.spaceBeforeBlock()
                     writer.writeLine(mkdownContext!.mkdownBibliography())
                 }
+            case .byline:
+                byline(line)
             case .calendar:
                 if mkdownContext != nil {
                     writer.spaceBeforeBlock()
@@ -1498,6 +1500,46 @@ public class MkdownParser {
         }
     }
     
+    func byline(_ line: MkdownLine) {
+        
+        // Get necessary info or exit
+        guard !line.commandInfo.parms.isEmpty else {
+            return
+        }
+        
+        // Start the paragraph
+        writer.startParagraph(klass: MkdownConstants.bylineClass)
+        
+        // See what info we have
+        let parms = line.commandInfo.parms.split(separator: "|", omittingEmptySubsequences: false)
+        var author = ""
+        var prefix = ""
+        var link = ""
+        if parms.count > 0 {
+            author = StringUtils.trim(String(parms[0]))
+        }
+        if parms.count > 1 {
+            prefix = StringUtils.trim(String(parms[1]))
+        }
+        if parms.count > 2 {
+            link = StringUtils.trim(String(parms[2]))
+        }
+        
+        if prefix.isEmpty {
+            writer.write("by ")
+        } else {
+            writer.write(prefix)
+            if !prefix.hasSuffix(" ") {
+                writer.write(" ")
+            }
+        }
+        
+        formatLink(link: link, text: author, citeType: .none, relationship: "author noopener")
+        
+        // End the paragraph
+        writer.finishParagraph()
+    }
+    
     func quoteFrom(_ line: MkdownLine) {
         
         // Get necessary info or exit
@@ -1570,7 +1612,7 @@ public class MkdownParser {
         writer.finishParagraph()
     }
     
-    func formatLink(link: String, text: String, citeType: CiteType) {
+    func formatLink(link: String, text: String, citeType: CiteType, relationship: String? = nil) {
         guard !text.isEmpty else { return }
         var pre = ""
         var post = ""
@@ -1588,9 +1630,9 @@ public class MkdownParser {
         if link.isEmpty {
             writer.write(textPlus)
         } else if link.starts(with: "http://") || link.starts(with: "https://") {
-            writer.link(text: textPlus, path: link, title: nil, style: nil, klass: "ext-link", blankTarget: true)
+            writer.link(text: textPlus, path: link, title: nil, style: nil, klass: "ext-link", blankTarget: true, relationship: relationship)
         } else {
-            writer.link(text: textPlus, path: link, title: nil, style: nil, klass: nil, blankTarget: false)
+            writer.link(text: textPlus, path: link, title: nil, style: nil, klass: nil, blankTarget: false, relationship: relationship)
         }
     }
     
