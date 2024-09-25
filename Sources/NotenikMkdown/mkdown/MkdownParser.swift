@@ -105,6 +105,7 @@ public class MkdownParser {
     var tableStarted = false
     var tableSortable = false
     var tableID = ""
+    var tableNumber = 0
     var columnStyles: [String] = []
     var columnIndex = 0
     
@@ -1381,12 +1382,15 @@ public class MkdownParser {
                     writer.writeLine(mkdownContext!.mkdownSearch(siteURL: line.commandInfo.mods))
                 }
             case .sortTable:
+                tableNumber += 1
                 if mkdownContext != nil {
                     tableID = line.commandInfo.mods
                     if tableID.isEmpty {
-                        tableID = "sortable-table"
+                        tableID = "table-\(tableNumber)"
                     }
-                    writer.writeLine(mkdownContext!.mkdownTableSort(tableID: tableID))
+                    if tableNumber == 1 {
+                        writer.writeLine(mkdownContext!.mkdownTableSort())
+                    }
                     tableSortable = true
                 }
             case .tagsCloud:
@@ -3734,7 +3738,7 @@ public class MkdownParser {
             case .headerColumnStart:
                 var onclick = ""
                 if tableSortable {
-                    onclick = "sortTable(\(columnIndex))"
+                    onclick = "sortTable(\'\(tableID)\',\(columnIndex))"
                 }
                 writer.startTableHeader(onclick: onclick, style: getColumnStyle(columnIndex: columnIndex), colspan: chunk.columnsToSpan)
                 columnsSpanned = chunk.columnsToSpan
@@ -3746,7 +3750,7 @@ public class MkdownParser {
                 columnIndex += columnsSpanned
                 var onclick = ""
                 if tableSortable {
-                    onclick = "sortTable(\(columnIndex))"
+                    onclick = "sortTable(\'\(tableID)\',\(columnIndex))"
                 }
                 writer.startTableHeader(onclick: onclick, style: getColumnStyle(columnIndex: columnIndex), colspan: chunk.columnsToSpan)
                 columnsSpanned = chunk.columnsToSpan

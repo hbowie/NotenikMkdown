@@ -48,7 +48,7 @@ public protocol MkdownContext {
     func mkdownSearch(siteURL: String) -> String
     
     /// Generate javascript to sort the following table.
-    func mkdownTableSort(tableID: String) -> String
+    func mkdownTableSort() -> String
     
     /// Return a tags outline of the collection, formatted in HTML.
     func mkdownTagsOutline(mods: String) -> String
