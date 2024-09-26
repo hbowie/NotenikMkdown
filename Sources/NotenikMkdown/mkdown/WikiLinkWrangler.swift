@@ -30,11 +30,19 @@ public class WikiLinkWrangler {
     ///   - def: The definition of the field.
     ///   - parms: The display parameters to be used.
     ///   - markedup: The instance of Markedup to be used to generate the output.
-    public func targetsToHTML(properLabel: String, targets: WikiLinkTargetList, markedup: Markedup) {
+    public func targetsToHTML(properLabel: String,
+                              targets: WikiLinkTargetList,
+                              markedup: Markedup,
+                              initialReveal: Bool = false) {
         
         guard targets.count > 0 else { return }
         
-        markedup.startDetails(summary: properLabel)
+        var openParmValue: String? = nil
+        if initialReveal {
+            openParmValue = "true"
+        }
+        
+        markedup.startDetails(summary: properLabel, openParm: openParmValue)
         markedup.startUnorderedList(klass: nil)
         for target in targets {
             markedup.startListItem()
