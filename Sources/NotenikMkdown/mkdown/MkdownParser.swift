@@ -3720,11 +3720,23 @@ public class MkdownParser {
             case .skipSpace:
                 break
             case .ellipsis:
-                writer.ellipsis()
+                if withinCodeSpan {
+                    writer.write("...")
+                } else {
+                    writer.ellipsis()
+                }
             case .endash:
-                writer.writeEnDash()
+                if withinCodeSpan {
+                    writer.write("--")
+                } else {
+                    writer.writeEnDash()
+                }
             case .emdash:
-                writer.writeEmDash()
+                if withinCodeSpan {
+                    writer.write("---")
+                } else {
+                    writer.writeEmDash()
+                }
             case .singleCurlyQuoteOpen:
                 writer.leftSingleQuote()
             case .singleCurlyQuoteClose:
