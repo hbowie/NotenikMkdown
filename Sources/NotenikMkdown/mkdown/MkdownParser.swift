@@ -1549,71 +1549,8 @@ public class MkdownParser {
         // Get necessary info or exit
         guard !line.commandInfo.parms.isEmpty else { return }
         
-        // Start the paragraph
-        writer.startParagraph(klass: "quote-from")
-        
-        // See what info we have
-        let parms = line.commandInfo.parms.split(separator: "|", omittingEmptySubsequences: false)
-        var author = ""
-        var date = ""
-        var typeOfWork = ""
-        var workTitle = ""
-        var authorLink = ""
-        var workLink = ""
-        if parms.count > 0 {
-            author = StringUtils.trim(String(parms[0]))
-        }
-        if parms.count > 1 {
-            date = StringUtils.trim(String(parms[1]))
-        }
-        if parms.count > 2 {
-            typeOfWork = StringUtils.trim(String(parms[2]).lowercased())
-        }
-        if parms.count > 3 {
-            workTitle = StringUtils.trim(String(parms[3]))
-        }
-        if parms.count > 4 {
-            authorLink = StringUtils.trim(String(parms[4]))
-        }
-        if parms.count > 5 {
-            workLink = StringUtils.trim(String(parms[5]))
-        }
-        
-        // Write out the author's name, with an optional link
-        formatLink(link: authorLink, text: author, citeType: .none)
-        var comma = ""
-        if !date.isEmpty || !workTitle.isEmpty {
-            writer.write(",")
-        }
-        
-        // Write out the date, if we have one
-        comma = ""
-        if !date.isEmpty {
-            if !workTitle.isEmpty {
-                comma = ","
-            }
-            writer.write(" \(date)\(comma)")
-        }
-        
-        if !workTitle.isEmpty {
-            writer.write(" from ")
-            if !typeOfWork.isEmpty {
-                writer.write("the \(typeOfWork) ")
-            }
-            var citeType: CiteType = .minor
-            switch typeOfWork {
-            case "", "album", "book", "cd", "decision", "film", "novel", "play", "television show", "unknown", "video", "web page":
-                citeType = .major
-            default:
-                break
-            }
-            
-            // Write out the title of the work, if we have one
-            formatLink(link: workLink, text: workTitle, citeType: citeType)
-        }
-        
-        // End the paragraph
-        writer.finishParagraph()
+        let quoteFrom = QuoteFrom()
+        quoteFrom.formatFrom(writer: writer, str: line.commandInfo.parms)
     }
     
     func formatLink(link: String, text: String, citeType: CiteType, relationship: String? = nil) {
