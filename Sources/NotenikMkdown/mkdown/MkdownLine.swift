@@ -33,9 +33,12 @@ class MkdownLine {
     var indentLevels = 0
     
     var repeatingChar: Character = " "
+    var repeatingStart = ""
+    var stillRepeating = false
     var repeatCount = 0
     var onlyRepeating = true
     var onlyRepeatingAndSpaces = true
+    
     
     var leadingBulletAndSpace = false
     var checkBox = ""
@@ -66,11 +69,22 @@ class MkdownLine {
             (repeatingChar == "-" || repeatingChar == "*" || repeatingChar == "_")
     }
     
+    /// Is this a code fence line?
+    /// - Parameters:
+    ///   - inProgress: Are we already within a code fence?
+    ///   - lastChar: The last character used to indicate a code fence.
+    ///   - lastRepeatCount: The number of times the character was repeated.
+    /// - Returns: True if this line qualified as a code fence.
     func codeFence(inProgress: Bool, lastChar: Character, lastRepeatCount: Int) -> Bool {
-        return (onlyRepeating && repeatCount >= 3 &&
-            (repeatingChar == "`" || repeatingChar == "~") &&
-            (!inProgress ||
-                (repeatingChar == lastChar && repeatCount == lastRepeatCount)))
+        guard repeatCount >= 3 else { return false }
+        guard repeatingStart.count >= 3 else { return false }
+        guard repeatingStart.first == "`" || repeatingStart.first == "~" else { return false }
+        guard repeatingChar == "`" || repeatingChar == "~" else { return false }
+        if inProgress {
+            return (onlyRepeating && repeatingChar == lastChar && repeatCount == lastRepeatCount)
+        } else {
+            return true
+        }
     }
     
     var textFound = false

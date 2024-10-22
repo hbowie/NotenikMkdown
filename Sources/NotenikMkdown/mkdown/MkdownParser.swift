@@ -213,10 +213,22 @@ public class MkdownParser {
             mdin.setIndex(.endLine, to: .next)
             
             // Check for a line consisting of a repetition of a single character.
+            if nextLine.repeatingStart.isEmpty {
+                nextLine.repeatingStart.append(char)
+                nextLine.stillRepeating = true
+            } else if char == nextLine.repeatingStart.first && nextLine.stillRepeating {
+                nextLine.repeatingStart.append(char)
+            } else {
+                nextLine.stillRepeating = false
+            }
+            
             if (char == "-" || char == "=" || char == "*" || char == "_" || char == "`" || char == "~")
                 && (nextLine.repeatingChar == " " || nextLine.repeatingChar == char) {
                 nextLine.repeatingChar = char
                 nextLine.repeatCount += 1
+                if char == nextLine.repeatingStart.first {
+                    nextLine.repeatingStart.append(char)
+                }
             } else if char == " " {
                 nextLine.onlyRepeating = false
             } else if char == ">" && phase == .leadingPunctuation {
