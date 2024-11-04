@@ -94,6 +94,7 @@ class MkdownLine {
     var endsWithNewline = false
     var endsWithBackSlash = false
     
+    /// Is the line empty?
     var isEmpty: Bool {
         return line.count == 0 && !endsWithNewline
     }

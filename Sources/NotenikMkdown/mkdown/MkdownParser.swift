@@ -226,9 +226,6 @@ public class MkdownParser {
                 && (nextLine.repeatingChar == " " || nextLine.repeatingChar == char) {
                 nextLine.repeatingChar = char
                 nextLine.repeatCount += 1
-                if char == nextLine.repeatingStart.first {
-                    nextLine.repeatingStart.append(char)
-                }
             } else if char == " " {
                 nextLine.onlyRepeating = false
             } else if char == ">" && phase == .leadingPunctuation {
