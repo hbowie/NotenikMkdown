@@ -2,6 +2,9 @@ Title:  Images
 
 Seq:    13
 
-Body: 
+Body:
 
-Let's insert an image: ![Notenik Logo](https://notenik.net/images/notenik.png)
+Let's insert an image: 
+
+![Notenik Logo](https://notenik.net/images/notenik.png)
+
