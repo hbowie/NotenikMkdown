@@ -24,6 +24,7 @@ public class MkdownOptions {
     public var extLinksOpenInNewWindows = false
     public var checkBoxMessageHandlerName = ""
     public var inlineHashtags = false
+    public var flattenImageLinks = false
     
     public init() {
         

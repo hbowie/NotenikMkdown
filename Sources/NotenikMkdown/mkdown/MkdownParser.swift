@@ -3929,7 +3929,14 @@ public class MkdownParser {
         }
         
         if imageNotLink {
-            writer.image(alt: linkText, path: linkURL, title: linkTitle)
+            var modifiedLink = linkURL
+            if options.flattenImageLinks && !linkURL.contains("://") {
+                modifiedLink = StringUtils.toCommonFileName(linkURL, leavingSlashes: true)
+            }
+            writer.image(alt: linkText, path: modifiedLink, title: linkTitle)
+            if mkdownContext != nil {
+                mkdownContext!.exposeImageLink(original: linkURL, modified: modifiedLink)
+            }
         } else if skipLink {
             writeChunks(chunksToWrite: linkTextChunks)
         } else {

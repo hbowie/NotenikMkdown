@@ -26,6 +26,9 @@ public protocol MkdownContext {
     /// Expose the usage of a Markdown command found within the page.
     func exposeMarkdownCommand(_ command: String)
     
+    /// Expose each image link found within the Markdown. 
+    func exposeImageLink(original: String, modified: String)
+    
     /// Collect embedded hash tags found within the Markdown. 
     func addHashTag(_ tag: String) -> String
     
