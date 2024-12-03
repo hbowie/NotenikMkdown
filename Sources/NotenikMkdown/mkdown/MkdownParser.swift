@@ -2470,7 +2470,7 @@ public class MkdownParser {
                 if chunk.type == .startMath {
                     withinMathSpan = true
                 }
-            case .tableHeaderPipe, .tableDataPipe:
+            case .tableHeaderPipe, .tableDataPipe, .tableHeaderPipeExtra, .tableDataPipeExtra:
                 if chunk.lineType == .code { break }
                 if withinCodeSpan { break }
                 if withinMathSpan { break }
@@ -2495,35 +2495,45 @@ public class MkdownParser {
         }
     }
     
-    /// See if this pipe starts and/or ends a column.
+    /// When a  .tableHeaderPipe or .tableDataPipe is encountered,
+    /// assign a more granular pipe type.
     func scanForTableElements(forChunkAt: Int) {
+
         let firstChunk = chunks[forChunkAt]
         
+        // Make colspan adjustments, if any.
         var next = forChunkAt + 1
-        var priorNextChunk: MkdownChunk? = nil
-        while next < chunks.count {
-            nextChunk = chunks[next]
-            if priorNextChunk != nil && priorNextChunk!.tablePipe {
-                if nextChunk.tablePipe {
-                    firstChunk.columnsToSpan += 1
-                    nextChunk.type = .tablePipeExtra
-                } else {
-                    next = chunks.count
-                    break
+        if next < chunks.count && !firstChunk.type.extraPipe {
+            var priorNextChunk: MkdownChunk? = nil
+            var endingPipesFound = false
+            var endingPipesPassed = false
+            while next < chunks.count && !endingPipesPassed {
+                nextChunk = chunks[next]
+                if nextChunk.type.tablePipePending {
+                    endingPipesFound = true
                 }
+                if nextChunk.type.tablePipePending {
+                    if priorNextChunk != nil && priorNextChunk!.type.tablePipePrelim {
+                        firstChunk.columnsToSpan += 1
+                        nextChunk.type = nextChunk.type.makeExtra
+                    }
+                } else {
+                    if endingPipesFound {
+                        endingPipesPassed = true
+                    }
+                }
+                priorNextChunk = nextChunk
+                next += 1
             }
-            priorNextChunk = nextChunk
-            next += 1
         }
         
+        // Handle the starting pipe for the line.
         if forChunkAt == 0 {
-            if firstChunk.type == .tableHeaderPipe {
-                firstChunk.type = .headerColumnStart
-            } else if firstChunk.type == .tableDataPipe {
-                firstChunk.type = .dataColumnStart
-            }
+            firstChunk.type = firstChunk.type.makeFinal(position: .start)
             return
         }
+        
+        guard !firstChunk.type.extraPipe else { return }
         
         var moreToTheRow = false
         
@@ -2531,8 +2541,8 @@ public class MkdownParser {
         
         while !moreToTheRow && next < chunks.count {
             nextChunk = chunks[next]
-            if nextChunk.type == .tablePipeExtra {
-                // keep looking
+            if nextChunk.type.extraPipe {
+                // ignore these
             } else if nextChunk.type != .plaintext {
                 moreToTheRow = true
             } else if !StringUtils.trim(nextChunk.text).isEmpty {
@@ -2542,18 +2552,11 @@ public class MkdownParser {
         }
         
         if moreToTheRow {
-            if firstChunk.type == .tableHeaderPipe {
-                firstChunk.type = .headerColumnFinishAndStart
-            } else {
-                firstChunk.type = .dataColumnFinishAndStart
-            }
+            firstChunk.type = firstChunk.type.makeFinal(position: .middle)
         } else {
-            if firstChunk.type == .tableHeaderPipe {
-                firstChunk.type = .headerColumnFinish
-            } else {
-                firstChunk.type = .dataColumnFinish
-            }
+            firstChunk.type = firstChunk.type.makeFinal(position: .finish)
         }
+        
     }
     
     func scanForDollarSigns(forChunkAt: Int) {
@@ -3723,9 +3726,8 @@ public class MkdownParser {
                 columnIndex += columnsSpanned
                 writer.startTableData(style: getColumnStyle(columnIndex: columnIndex), colspan: chunk.columnsToSpan)
                 columnsSpanned = chunk.columnsToSpan
-            case .tablePipeExtra:
+            case .tableDataPipeExtra, .tableHeaderPipeExtra:
                 break
-                
             case .startCheckBox:
                 break
             case .checkBoxContent:

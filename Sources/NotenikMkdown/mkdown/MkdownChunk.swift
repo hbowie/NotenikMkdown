@@ -53,10 +53,6 @@ class MkdownChunk {
         return type == .asterisk || type == .underline
     }
     
-    var tablePipe: Bool {
-        return type == .tableHeaderPipe || type == .tableDataPipe
-    }
-    
     func setTextFrom(char: Character) {
         text = String(char)
     }

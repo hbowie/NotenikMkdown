@@ -113,14 +113,16 @@ enum MkdownChunkType {
     case skipMath
     
     case tableHeaderPipe
+    case tableHeaderPipeExtra
     case headerColumnStart
     case headerColumnFinish
     case headerColumnFinishAndStart
     case tableDataPipe
+    case tableDataPipeExtra
     case dataColumnStart
     case dataColumnFinish
     case dataColumnFinishAndStart
-    case tablePipeExtra
+
     
     case startCheckBox
     case checkBoxContent
@@ -139,4 +141,76 @@ enum MkdownChunkType {
     
     case startSuperscript
     case endSuperscript
+    
+    var extraPipe: Bool {
+        switch self {
+        case .tableHeaderPipeExtra, .tableDataPipeExtra:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    var notExtra: Bool {
+        switch self {
+        case .tableHeaderPipeExtra, .tableDataPipeExtra:
+            return false
+        default:
+            return true
+        }
+    }
+    
+    var tablePipePrelim: Bool {
+        switch self {
+        case .tableHeaderPipe, .tableHeaderPipeExtra, .tableDataPipe, .tableDataPipeExtra:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    var tablePipePending: Bool {
+        switch self {
+        case .tableHeaderPipe, .tableDataPipe:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    var makeExtra: MkdownChunkType {
+        switch self {
+        case .tableHeaderPipe, .tableHeaderPipeExtra:
+            return .tableHeaderPipeExtra
+        default:
+            return .tableDataPipeExtra
+        }
+    }
+    
+    func makeFinal(position: linePosition) -> MkdownChunkType {
+        switch self {
+        case .tableHeaderPipe, .tableHeaderPipeExtra:
+            switch position {
+            case .start: return .headerColumnStart
+            case .middle: return .headerColumnFinishAndStart
+            case .finish: return .headerColumnFinish
+            }
+        case .tableDataPipe, .tableDataPipeExtra:
+            switch position {
+            case .start: return .dataColumnStart
+            case .middle: return .dataColumnFinishAndStart
+            case .finish: return .dataColumnFinish
+            }
+        default:
+            return self
+        }
+    }
+    
+    enum linePosition {
+        case start
+        case middle
+        case finish
+    }
 }
+
+

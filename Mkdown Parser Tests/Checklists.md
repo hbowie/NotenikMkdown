@@ -1,6 +1,6 @@
 Title:  Checklists
 
-Seq:    507
+Seq:    511
 
 Long Text:
 
@@ -8,7 +8,9 @@ Long Text:
 - [ ] Checkbox 2
 
 
-Teaser: - [x] Checkbox 1
+Teaser:
+
+- [x] Checkbox 1
 - [ ] Checkbox 2
 
 
