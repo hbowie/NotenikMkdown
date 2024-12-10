@@ -85,6 +85,8 @@ public class MkdownParser {
     var citation = MkdownCitation()
     var withinCitation = false
     
+    var withinFigure = false
+    
     var headingNumbers = [0, 0, 0, 0, 0, 0, 0]
     
     var indentToCode = false
@@ -113,6 +115,8 @@ public class MkdownParser {
     var outlineMod = 0
     var outlineDepth = 0
     var openDetails: [Bool] = [false, false, false, false, false, false, false]
+    
+    var pClass: String?
     
     public var counts = MkdownCounts()
     
@@ -185,6 +189,7 @@ public class MkdownParser {
         
         withinFootnote = false
         withinCitation = false
+        withinFigure = false
         codeFenced = false
         mathBlock = false
         mathBlockStart = ""
@@ -888,7 +893,13 @@ public class MkdownParser {
             nextLine.carryBlockquotesForward(lastLine: lastLine)
         }
         
-        if nextLine.type == .followOn || nextLine.type == .ordinaryText {
+        if nextLine.type == .figure {
+            withinFigure = true
+        } else if nextLine.type == .endFigure {
+            withinFigure = false
+        }
+        
+        if !withinFigure && (nextLine.type == .followOn || nextLine.type == .ordinaryText) {
             nextLine.addParagraph()
         }
         
@@ -1238,6 +1249,8 @@ public class MkdownParser {
     var thisLineIsHTML = false
     var lastLineWasHTML = false
     
+    var captionStarted = false
+    
     /// Go through the Markdown lines, writing out HTML.
     func writeHTML() {
         writer = Markedup()
@@ -1253,6 +1266,8 @@ public class MkdownParser {
         
         thisLineIsHTML = false
         lastLineWasHTML = false
+        
+        captionStarted = false
         
         var possibleLine = getNextLine()
         
@@ -1334,6 +1349,21 @@ public class MkdownParser {
                     writer.spaceBeforeBlock()
                     writer.writeLine(mkdownContext!.mkdownCalendar(mods: line.commandInfo.mods))
                 }
+            case .figure:
+                outputChunks()
+                writer.startFigure()
+                captionStarted = false
+            case .caption:
+                outputChunks()
+                writer.startFigureCaption()
+                captionStarted = true
+            case .endFigure:
+                outputChunks()
+                if captionStarted {
+                    writer.finishFigureCaption()
+                    captionStarted = false
+                }
+                writer.finishFigure()
             case .code:
                 chunkAndWrite(line)
                 writer.newLine()
@@ -1386,6 +1416,8 @@ public class MkdownParser {
                 if mkdownContext != nil {
                     writer.writeLine(mkdownContext!.mkdownIndex())
                 }
+            case .pClass:
+                pClass = line.commandInfo.mods
             case .search:
                 if mkdownContext != nil {
                     writer.writeLine(mkdownContext!.mkdownSearch(siteURL: line.commandInfo.mods))
@@ -1962,7 +1994,12 @@ public class MkdownParser {
         case "ol":
             writer.startOrderedList(klass: nil)
         case "p":
-            writer.startParagraph()
+            if pClass != nil && !pClass!.isEmpty {
+                writer.startParagraph(klass: pClass)
+                pClass = nil
+            } else {
+                writer.startParagraph()
+            }
         case "pre":
             writer.startPreformatted()
         case "table":

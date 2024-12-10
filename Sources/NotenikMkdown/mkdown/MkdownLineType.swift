@@ -3,7 +3,7 @@
 //  Notenik
 //
 //  Created by Herb Bowie on 3/1/20.
-//  Copyright © 2020 - 2023 Herb Bowie (https://hbowie.net)
+//  Copyright © 2020 - 2024 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -15,12 +15,15 @@ public enum MkdownLineType {
     case biblio
     case byline
     case calendar
+    case caption
     case citationDef
     case citationItem
     case code
     case codeFence
     case defTerm
     case defDefinition
+    case endFigure
+    case figure
     case followOn
     case h1Underlines
     case h2Underlines
@@ -43,6 +46,7 @@ public enum MkdownLineType {
     case outlineBullets
     case outlineHeadings
     case quoteFrom
+    case pClass
     case random
     case search
     case sortTable

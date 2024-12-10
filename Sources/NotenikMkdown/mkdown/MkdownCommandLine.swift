@@ -150,6 +150,15 @@ public class MkdownCommandLine {
         case MkdownConstants.calendarCmd:
             info.lineType = .calendar
             info.validCommand = true
+        case MkdownConstants.captionCmd:
+            info.lineType = .caption
+            info.validCommand = true
+        case MkdownConstants.endfigureCmd:
+            info.lineType = .endFigure
+            info.validCommand = true
+        case MkdownConstants.figureCmd:
+            info.lineType = .figure
+            info.validCommand = true
         case MkdownConstants.collectionTocCmd:
             info.lineType = .tocForCollection
             info.tocLevelStart = digit1
@@ -211,6 +220,9 @@ public class MkdownCommandLine {
             info.validCommand = true
         case MkdownConstants.outlineHeadingsCmd:
             info.lineType = .outlineHeadings
+            info.validCommand = true
+        case MkdownConstants.pclassCmd:
+            info.lineType = .pClass
             info.validCommand = true
         default:
             break
