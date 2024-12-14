@@ -1364,6 +1364,14 @@ public class MkdownParser {
                     captionStarted = false
                 }
                 writer.finishFigure()
+            case .segment:
+                outputChunks()
+                closeBlocks(from: 0)
+                startSegment(line)
+            case .endSegment:
+                outputChunks()
+                closeBlocks(from: 0)
+                endSegment()
             case .code:
                 chunkAndWrite(line)
                 writer.newLine()
@@ -1592,6 +1600,37 @@ public class MkdownParser {
         
         let quoteFrom = QuoteFrom()
         quoteFrom.formatFrom(writer: writer, str: line.commandInfo.parms)
+    }
+    
+    var segmentStack: [String] = []
+    
+    func startSegment(_ line: MkdownLine) {
+        print("MkdownParser.startSegment")
+        print("  - parms: \(line.commandInfo.parms)")
+        guard !line.commandInfo.parms.isEmpty else { return }
+        
+        // See what info we have
+        let parms = line.commandInfo.parms.split(separator: "|", omittingEmptySubsequences: false)
+        var element = ""
+        var klass = ""
+        var id = ""
+        if parms.count > 0 {
+            element = StringUtils.trim(String(parms[0]))
+        }
+        if parms.count > 1 {
+            klass = StringUtils.trim(String(parms[1]))
+        }
+        if parms.count > 2 {
+            id = StringUtils.trim(String(parms[2]))
+        }
+        writer.startSegment(element: element, klass: klass, id: id)
+        segmentStack.append(element)
+        
+    }
+    
+    func endSegment() {
+        guard !segmentStack.isEmpty else { return }
+        writer.finishSegment(element: segmentStack.removeLast()) 
     }
     
     func formatLink(link: String, text: String, citeType: CiteType, relationship: String? = nil) {

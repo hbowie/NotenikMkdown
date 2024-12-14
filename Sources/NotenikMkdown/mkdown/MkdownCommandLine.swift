@@ -83,25 +83,8 @@ public class MkdownCommandLine {
                 }
             }
             
-            if prefixComplete && commandComplete && styleComplete && info.command == MkdownConstants.quoteFromCmd {
-                if info.parms.isEmpty && (char.isWhitespace || char == ":") {
-                    // skip leading spacers
-                } else if char == "]" || char == "}" {
-                    // skip trailing delimiters
-                } else {
-                    info.parms.append(char)
-                }
-            }
-            
-            if prefixComplete && commandComplete && styleComplete && 
-                (info.command == MkdownConstants.bylineCmd || info.command == "by") {
-                if info.parms.isEmpty && (char.isWhitespace || char == ":") {
-                    // skip leading spacers
-                } else if char == "]" || char == "}" {
-                    // skip trailing delimiters
-                } else {
-                    info.parms.append(char)
-                }
+            if prefixComplete && commandComplete && styleComplete {
+                collectInfoParms(char)
             }
             
             if prefixComplete && commandComplete && styleComplete && !modsComplete {
@@ -224,8 +207,31 @@ public class MkdownCommandLine {
         case MkdownConstants.pclassCmd:
             info.lineType = .pClass
             info.validCommand = true
+        case MkdownConstants.segmentCmd:
+            info.lineType  = .segment
+            info.validCommand = true
+        case MkdownConstants.endSegmentCmd:
+            info.lineType  = .endSegment
+            info.validCommand = true
         default:
             break
         }
     }
+    
+    func collectInfoParms(_ char: Character) {
+        switch info.command {
+            case MkdownConstants.segmentCmd, MkdownConstants.bylineCmd, "by", MkdownConstants.quoteFromCmd:
+            break
+        default:
+            return
+        }
+        if info.parms.isEmpty && (char.isWhitespace || char == ":") {
+            // skip leading spacers
+        } else if char == "]" || char == "}" {
+            // skip trailing delimiters
+        } else {
+            info.parms.append(char)
+        }
+    }
 }
+

@@ -23,6 +23,7 @@ public enum MkdownLineType {
     case defTerm
     case defDefinition
     case endFigure
+    case endSegment
     case figure
     case followOn
     case h1Underlines
@@ -49,6 +50,7 @@ public enum MkdownLineType {
     case pClass
     case random
     case search
+    case segment
     case sortTable
     case tableHeader
     case tableDelims
