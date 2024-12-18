@@ -33,6 +33,7 @@ public enum MkdownLineType {
     case html
     case include
     case index
+    case inject
     case linkDef
     case linkDefExt
     case footer
@@ -47,7 +48,6 @@ public enum MkdownLineType {
     case outlineBullets
     case outlineHeadings
     case quoteFrom
-    case pClass
     case random
     case search
     case segment

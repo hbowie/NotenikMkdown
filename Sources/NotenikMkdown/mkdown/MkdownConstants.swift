@@ -4,7 +4,7 @@
 //
 //  Created by Herb Bowie on 4/21/23.
 //
-//  Copyright © 2023 Herb Bowie (https://hbowie.net)
+//  Copyright © 2023 - 2024 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -32,12 +32,12 @@ public struct MkdownConstants {
     public static let footerCmd          = "footer"
     public static let headerCmd          = "header"
     public static let includeCmd         = "include"
+    public static let injectCmd          = "inject"
     public static let indexCmd           = "index"
     public static let metadataCmd        = "metadata"
     public static let navCmd             = "nav"
     public static let outlineBulletsCmd  = "outlinebullets"
     public static let outlineHeadingsCmd = "outlineheadings"
-    public static let pclassCmd          = "pclass"
     public static let quoteFromCmd       = "quotefrom"
     public static let randomCmd          = "random"
     public static let searchCmd          = "search"

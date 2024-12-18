@@ -12,6 +12,8 @@
 
 import Foundation
 
+import NotenikUtils
+
 public class MkdownCommandInfo {
     
     public var validCommand = false
@@ -20,6 +22,8 @@ public class MkdownCommandInfo {
     public var includeStyle = ""
     public var mods = ""
     public var parms = ""
+    public var individualParms: [String] = []
+    var splitPerformed = false
     public var tocLevelStart: Character = " "
     public var tocLevelEnd: Character = "9"
     public var suffix = ""
@@ -40,6 +44,34 @@ public class MkdownCommandInfo {
             return int!
         } else {
             return 999
+        }
+    }
+    
+    public func getParm(atIndex: Int) -> String {
+        splitParms()
+        if atIndex >= 0 && atIndex < individualParms.count {
+            return individualParms[atIndex]
+        } else {
+            return ""
+        }
+    }
+    
+    public func splitParms(sep: Character = "|") {
+        guard !splitPerformed else { return }
+        individualParms = []
+        splitPerformed = true
+        guard parms.count > 0 else { return }
+        var str = SolidString()
+        for c in parms {
+            if c == sep {
+                individualParms.append(str.description)
+                str = SolidString()
+            } else {
+                str.append(c)
+            }
+        }
+        if !str.isEmpty {
+            individualParms.append(str.description)
         }
     }
 }

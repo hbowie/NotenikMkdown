@@ -159,6 +159,9 @@ public class MkdownCommandLine {
         case MkdownConstants.indexCmd:
             info.lineType = .index
             info.validCommand = true
+        case MkdownConstants.injectCmd:
+            info.lineType = .inject
+            info.validCommand = true
         case MkdownConstants.quoteFromCmd:
             info.lineType = .quoteFrom
             info.validCommand = true
@@ -204,9 +207,6 @@ public class MkdownCommandLine {
         case MkdownConstants.outlineHeadingsCmd:
             info.lineType = .outlineHeadings
             info.validCommand = true
-        case MkdownConstants.pclassCmd:
-            info.lineType = .pClass
-            info.validCommand = true
         case MkdownConstants.segmentCmd:
             info.lineType  = .segment
             info.validCommand = true
@@ -220,7 +220,7 @@ public class MkdownCommandLine {
     
     func collectInfoParms(_ char: Character) {
         switch info.command {
-            case MkdownConstants.segmentCmd, MkdownConstants.bylineCmd, "by", MkdownConstants.quoteFromCmd:
+        case MkdownConstants.segmentCmd, MkdownConstants.bylineCmd, "by", MkdownConstants.quoteFromCmd, MkdownConstants.injectCmd:
             break
         default:
             return

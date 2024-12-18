@@ -136,6 +136,13 @@ enum MkdownChunkType {
     case endStrikethrough1
     case endStrikethrough2
     
+    case equalSign
+    
+    case startHighlight1
+    case startHighlight2
+    case endHighlight1
+    case endHighlight2
+    
     case startSubscript
     case endSubscript
     

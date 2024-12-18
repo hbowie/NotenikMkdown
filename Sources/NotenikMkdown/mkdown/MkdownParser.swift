@@ -116,7 +116,9 @@ public class MkdownParser {
     var outlineDepth = 0
     var openDetails: [Bool] = [false, false, false, false, false, false, false]
     
-    var pClass: String?
+    var injectElement = ""
+    var injectKlass = ""
+    var injectID = ""
     
     public var counts = MkdownCounts()
     
@@ -1424,8 +1426,10 @@ public class MkdownParser {
                 if mkdownContext != nil {
                     writer.writeLine(mkdownContext!.mkdownIndex())
                 }
-            case .pClass:
-                pClass = line.commandInfo.mods
+            case .inject:
+                injectElement = line.commandInfo.getParm(atIndex: 0)
+                injectKlass = line.commandInfo.getParm(atIndex: 1)
+                injectID = line.commandInfo.getParm(atIndex: 2)
             case .search:
                 if mkdownContext != nil {
                     writer.writeLine(mkdownContext!.mkdownSearch(siteURL: line.commandInfo.mods))
@@ -1564,19 +1568,9 @@ public class MkdownParser {
         writer.startParagraph(klass: MkdownConstants.bylineClass)
         
         // See what info we have
-        let parms = line.commandInfo.parms.split(separator: "|", omittingEmptySubsequences: false)
-        var author = ""
-        var prefix = ""
-        var link = ""
-        if parms.count > 0 {
-            author = StringUtils.trim(String(parms[0]))
-        }
-        if parms.count > 1 {
-            prefix = StringUtils.trim(String(parms[1]))
-        }
-        if parms.count > 2 {
-            link = StringUtils.trim(String(parms[2]))
-        }
+        let author = line.commandInfo.getParm(atIndex: 0)
+        let prefix = line.commandInfo.getParm(atIndex: 1)
+        let link = line.commandInfo.getParm(atIndex: 2)
         
         if prefix.isEmpty {
             writer.write("by ")
@@ -1605,24 +1599,12 @@ public class MkdownParser {
     var segmentStack: [String] = []
     
     func startSegment(_ line: MkdownLine) {
-        print("MkdownParser.startSegment")
-        print("  - parms: \(line.commandInfo.parms)")
         guard !line.commandInfo.parms.isEmpty else { return }
         
         // See what info we have
-        let parms = line.commandInfo.parms.split(separator: "|", omittingEmptySubsequences: false)
-        var element = ""
-        var klass = ""
-        var id = ""
-        if parms.count > 0 {
-            element = StringUtils.trim(String(parms[0]))
-        }
-        if parms.count > 1 {
-            klass = StringUtils.trim(String(parms[1]))
-        }
-        if parms.count > 2 {
-            id = StringUtils.trim(String(parms[2]))
-        }
+        let element = line.commandInfo.getParm(atIndex: 0)
+        let klass = line.commandInfo.getParm(atIndex: 1)
+        let id = line.commandInfo.getParm(atIndex: 2)
         writer.startSegment(element: element, klass: klass, id: id)
         segmentStack.append(element)
         
@@ -2033,9 +2015,11 @@ public class MkdownParser {
         case "ol":
             writer.startOrderedList(klass: nil)
         case "p":
-            if pClass != nil && !pClass!.isEmpty {
-                writer.startParagraph(klass: pClass)
-                pClass = nil
+            if injectElement == "p" {
+                writer.startParagraph(klass: injectKlass, id: injectID)
+                injectElement = ""
+                injectKlass = ""
+                injectElement = ""
             } else {
                 writer.startParagraph()
             }
@@ -2045,7 +2029,9 @@ public class MkdownParser {
             writer.startTable(id: tableID)
         case "ul":
             var ulKlass: String? = nil
-            if outlining == .bullets {
+            if injectElement == "ul" {
+                ulKlass = injectKlass
+            } else if outlining == .bullets {
                 outlineDepth += 1
                 ulKlass = "outline-list"
             }
@@ -2254,6 +2240,8 @@ public class MkdownParser {
                     addCharAsChunk(char: char, type: .exclamationMark, lastChar: lastChar, line: line)
                 case "~":
                     addCharAsChunk(char: char, type: .tilde, lastChar: lastChar, line: line)
+                case "=":
+                    addCharAsChunk(char: char, type: .equalSign, lastChar: lastChar, line: line)
                 case "|":
                     if line.type == .tableHeader {
                         addCharAsChunk(char: char, type: .tableHeaderPipe, lastChar: lastChar, line: line)
@@ -2456,6 +2444,12 @@ public class MkdownParser {
                 if chunk.type == .tilde {
                     scanForSubscript(forChunkAt: index)
                 }
+            case .equalSign:
+                if chunk.lineType == .code { break }
+                if withinCodeSpan { break }
+                if withinMathSpan { break }
+                if withinTag { break }
+                scanForHighlight(forChunkAt: index)
             case .caret:
                 if chunk.lineType == .code { break }
                 if withinCodeSpan { break }
@@ -3005,6 +2999,55 @@ public class MkdownParser {
         chunks[start + 1].type = .startStrikethrough2
         chunks[matchStart].type = .endStrikethrough1
         chunks[matchStart + 1].type = .endStrikethrough2
+    }
+    
+    /// Scan for closing equal signs to form a highlight. .
+    func scanForHighlight(forChunkAt: Int) {
+        start = forChunkAt
+        startChunk = chunks[start]
+        var next = start + 1
+        consecutiveStartCount = 1
+        leftToClose = 1
+        consecutiveCloseCount = 0
+        matchStart = -1
+        var highlightCount = 0
+        while leftToClose > 0 && next < chunks.count {
+            let nextChunk = chunks[next]
+            if nextChunk.type == startChunk.type {
+                if consecutiveStartCount == 1 && next == (start + 1) {
+                    consecutiveStartCount = 2
+                    leftToClose = 2
+                } else if consecutiveStartCount == 2 && highlightCount > 0 && consecutiveCloseCount == 0 {
+                    consecutiveCloseCount = 1
+                    leftToClose = 1
+                    matchStart = next
+                } else if consecutiveStartCount == 2
+                            && highlightCount > 0
+                            && consecutiveCloseCount == 1
+                            && next == (matchStart + 1) {
+                    consecutiveCloseCount = 2
+                    leftToClose = 0
+                    processHighlightClosure()
+                }
+            } else if consecutiveStartCount == 2 && consecutiveCloseCount == 0 {
+                highlightCount += 1
+            } else if consecutiveStartCount == 2 && consecutiveCloseCount == 1 {
+                highlightCount += 2
+                consecutiveCloseCount = 0
+                leftToClose = 2
+            } else {
+                leftToClose = 0
+            }
+            next += 1
+        }
+    }
+    
+    /// Let's close things up.
+    func processHighlightClosure() {
+        startChunk.type = .startHighlight1
+        chunks[start + 1].type = .startHighlight2
+        chunks[matchStart].type = .endHighlight1
+        chunks[matchStart + 1].type = .endHighlight2
     }
     
     /// If we have an asterisk or an underline, look for the closing symbols to end the emphasis span.
@@ -3622,6 +3665,14 @@ public class MkdownParser {
                 break
             case .endStrikethrough2:
                 writer.finishStrikethrough()
+            case .startHighlight1:
+                writer.startMark()
+            case .startHighlight2:
+                break
+            case .endHighlight1:
+                break
+            case .endHighlight2:
+                writer.finishMark()
             case .startSubscript:
                 writer.startSubscript()
             case .endSubscript:
