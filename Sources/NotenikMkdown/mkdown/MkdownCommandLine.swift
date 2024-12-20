@@ -37,7 +37,7 @@ public class MkdownCommandLine {
     func checkForCommandClosing(_ line: String) {
         
         var prefixComplete = false
-        var commandComplete = false
+        info.commandComplete = false
         var styleComplete = false
         var modsComplete = false
         var digit1: Character = " "
@@ -51,28 +51,28 @@ public class MkdownCommandLine {
                     prefixComplete = true
                     if info.prefix == "![[" {
                         info.command = "include"
-                        commandComplete = true
+                        info.commandComplete = true
                         styleComplete = true
                     }
                 }
             }
             
-            if prefixComplete && !commandComplete {
+            if prefixComplete && !info.commandComplete {
                 if char == "]" || char == "}" {
-                    commandComplete = true
+                    info.commandComplete = true
                     styleComplete = true
                     modsComplete = true
                 } else if char == ":" {
-                    commandComplete = true
+                    info.commandComplete = true
                     styleComplete = true
                 } else if char == "-" && info.command == "include" {
-                    commandComplete = true
+                    info.commandComplete = true
                 } else if !char.isWhitespace && char != "-" {
                     info.command.append(char.lowercased())
                 }
             }
             
-            if prefixComplete && commandComplete && !styleComplete {
+            if prefixComplete && info.commandComplete && !styleComplete {
                 if char == "]" || char == "}" {
                     styleComplete = true
                     modsComplete = true
@@ -83,11 +83,11 @@ public class MkdownCommandLine {
                 }
             }
             
-            if prefixComplete && commandComplete && styleComplete {
+            if prefixComplete && info.commandComplete && styleComplete && info.commandWithParms {
                 collectInfoParms(char)
             }
             
-            if prefixComplete && commandComplete && styleComplete && !modsComplete {
+            if prefixComplete && info.commandComplete && styleComplete && !modsComplete {
                 if char == ":" {
                     // do nothing
                 } else if char == "]" || char == "}" {
@@ -106,7 +106,7 @@ public class MkdownCommandLine {
                 }
             }
             
-            if prefixComplete && commandComplete && styleComplete && modsComplete {
+            if prefixComplete && info.commandComplete && styleComplete && modsComplete {
                 if !char.isWhitespace {
                     info.suffix.append(char)
                 }
@@ -219,12 +219,6 @@ public class MkdownCommandLine {
     }
     
     func collectInfoParms(_ char: Character) {
-        switch info.command {
-        case MkdownConstants.segmentCmd, MkdownConstants.bylineCmd, "by", MkdownConstants.quoteFromCmd, MkdownConstants.injectCmd:
-            break
-        default:
-            return
-        }
         if info.parms.isEmpty && (char.isWhitespace || char == ":") {
             // skip leading spacers
         } else if char == "]" || char == "}" {

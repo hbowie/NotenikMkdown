@@ -119,6 +119,7 @@ public class MkdownParser {
     var injectElement = ""
     var injectKlass = ""
     var injectID = ""
+    var injectStyle = ""
     
     public var counts = MkdownCounts()
     
@@ -1427,9 +1428,10 @@ public class MkdownParser {
                     writer.writeLine(mkdownContext!.mkdownIndex())
                 }
             case .inject:
-                injectElement = line.commandInfo.getParm(atIndex: 0)
-                injectKlass = line.commandInfo.getParm(atIndex: 1)
-                injectID = line.commandInfo.getParm(atIndex: 2)
+                injectElement = line.commandInfo.getParmElement()
+                injectKlass = line.commandInfo.getParmKlass()
+                injectID = line.commandInfo.getParmID()
+                injectStyle = line.commandInfo.getParmStyle()
             case .search:
                 if mkdownContext != nil {
                     writer.writeLine(mkdownContext!.mkdownSearch(siteURL: line.commandInfo.mods))
@@ -2016,10 +2018,11 @@ public class MkdownParser {
             writer.startOrderedList(klass: nil)
         case "p":
             if injectElement == "p" {
-                writer.startParagraph(klass: injectKlass, id: injectID)
+                writer.startParagraph(klass: injectKlass, id: injectID, style: injectStyle)
                 injectElement = ""
                 injectKlass = ""
                 injectElement = ""
+                injectStyle = ""
             } else {
                 writer.startParagraph()
             }
@@ -2028,17 +2031,20 @@ public class MkdownParser {
         case "table":
             writer.startTable(id: tableID)
         case "ul":
-            var ulKlass: String? = nil
             if injectElement == "ul" {
-                ulKlass = injectKlass
+                writer.startUnorderedList(klass: injectKlass, id: injectID, style: injectStyle)
+                injectElement = ""
+                injectKlass = ""
+                injectElement = ""
+                injectStyle = ""
             } else if outlining == .bullets {
                 outlineDepth += 1
-                ulKlass = "outline-list"
+                writer.startUnorderedList(klass: "outline-list")
+            } else if checkBox.count == 3 {
+                writer.startUnorderedList(klass: "checklist")
+            } else {
+                writer.startUnorderedList()
             }
-            if checkBox.count == 3 {
-                ulKlass = "checklist"
-            }
-            writer.startUnorderedList(klass: ulKlass)
         default:
             print("Don't know how to open tag of \(tag)")
         }
