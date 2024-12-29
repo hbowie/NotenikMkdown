@@ -2137,6 +2137,9 @@ public class MkdownParser {
         case "ul":
             if outlining == .bullets {
                 outlineDepth -= 1
+                if outlineDepth < 1 {
+                    outlining = .none
+                }
             }
             writer.finishUnorderedList()
         default:
