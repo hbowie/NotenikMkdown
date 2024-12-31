@@ -41,6 +41,7 @@ public struct MkdownConstants {
     public static let quoteFromCmd       = "quotefrom"
     public static let randomCmd          = "random"
     public static let searchCmd          = "search"
+    public static let sectionHeadingsCmd = "sectionheadings"
     public static let segmentCmd         = "segment"
     public static let sortTableCmd       = "sorttable"
     public static let tagsCloudCmd       = "tagscloud"

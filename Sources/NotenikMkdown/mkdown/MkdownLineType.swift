@@ -50,6 +50,7 @@ public enum MkdownLineType {
     case quoteFrom
     case random
     case search
+    case sectionHeadings
     case segment
     case sortTable
     case tableHeader

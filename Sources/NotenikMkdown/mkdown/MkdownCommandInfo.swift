@@ -36,6 +36,8 @@ public class MkdownCommandInfo {
                     commandWithParms = true
                 case MkdownConstants.injectCmd:
                     commandWithParms = true
+                case MkdownConstants.sectionHeadingsCmd:
+                    commandWithParms = true
                 default:
                     break
                 }

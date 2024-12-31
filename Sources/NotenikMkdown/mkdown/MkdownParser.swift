@@ -116,6 +116,9 @@ public class MkdownParser {
     var outlineDepth = 0
     var openDetails: [Bool] = [false, false, false, false, false, false, false]
     
+    var sectionOpen = false
+    var sectionHeadingLevel = -1
+    
     var injectElement = ""
     var injectKlass = ""
     var injectID = ""
@@ -1496,6 +1499,16 @@ public class MkdownParser {
                     outlineMod = modInt
                 }
                 openDetails = [false, false, false, false, false, false, false]
+            case .sectionHeadings:
+                sectionOpen = false
+                sectionHeadingLevel = -1
+                if line.commandInfo.parms.count > 0 {
+                    if let level = Int(line.commandInfo.parms) {
+                        if level > 0 && level <= 6 {
+                            sectionHeadingLevel = level
+                        }
+                    }
+                }
             case .blank:
                 break
             case .citationDef:
@@ -1549,6 +1562,10 @@ public class MkdownParser {
         
         if outlining == .headings{
             closeHeadingDetails(downTo: 1)
+        }
+        
+        if sectionOpen {
+            writer.finishSection()
         }
         
         if footnoteLines.count > 0 {
@@ -2052,6 +2069,17 @@ public class MkdownParser {
     }
     
     func startHeading(level: Int, text: String) {
+        if sectionHeadingLevel == -1 {
+            sectionHeadingLevel = level
+        }
+        let headingID = StringUtils.toCommonFileName(text)
+        if level == sectionHeadingLevel {
+            if sectionOpen {
+                writer.finishSection()
+            }
+            writer.startSection(id: "section-for-\(headingID)")
+            sectionOpen = true
+        }
         if outlining == .headings {
             closeHeadingDetails(downTo: level)
             if outlining == .headings {
@@ -2065,7 +2093,7 @@ public class MkdownParser {
                 writer.startSummary(id: StringUtils.toCommonFileName(text), klass: "heading-\(level)-summary")
             }
         } else {
-            writer.startHeading(level: level, id: StringUtils.toCommonFileName(text))
+            writer.startHeading(level: level, id: headingID)
         }
     }
     
@@ -2076,6 +2104,9 @@ public class MkdownParser {
                 writer.finishDetails()
                 openDetails[ix] = false
                 outlineDepth -= 1
+                if outlining == .bullets && outlineDepth < 1 {
+                    outlining = .none
+                }
             }
             ix -= 1
         }

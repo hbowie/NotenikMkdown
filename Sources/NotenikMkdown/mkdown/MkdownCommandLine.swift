@@ -207,6 +207,9 @@ public class MkdownCommandLine {
         case MkdownConstants.outlineHeadingsCmd:
             info.lineType = .outlineHeadings
             info.validCommand = true
+        case MkdownConstants.sectionHeadingsCmd:
+            info.lineType = .sectionHeadings
+            info.validCommand = true
         case MkdownConstants.segmentCmd:
             info.lineType  = .segment
             info.validCommand = true
