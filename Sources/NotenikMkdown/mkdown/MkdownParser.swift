@@ -270,6 +270,10 @@ public class MkdownParser {
                         goodTag = true
                     case "!--":
                         goodTag = true
+                    case "details", "summary":
+                        goodTag = true
+                    case "section", "article", "aside":
+                        goodTag = true
                     default:
                         goodTag = false
                     }
@@ -845,7 +849,7 @@ public class MkdownParser {
             }
         } else if (lastLine.type == .blank
             && leadingLeftAngleBracket
-            && !leadingLeftAngleBracketAndSlash
+            // && !leadingLeftAngleBracketAndSlash
             && goodTag) {
             nextLine.makeHTML()
             if possibleTag != "hr" {
@@ -1323,7 +1327,7 @@ public class MkdownParser {
                 if listItemIndex > 0 {
                     let listIndex = listItemIndex - 1
                     let listBlock = openBlocks.blocks[listIndex]
-                    if listBlock.isListTag && listBlock.listWithParagraphs {
+                    if listBlock.isListTag && listBlock.listWithParagraphs && outlining != .bullets {
                         let paraBlock = MkdownBlock("p")
                         openBlock(paraBlock.tag,
                                   footnoteItem: false,
