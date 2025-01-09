@@ -17,11 +17,13 @@ import Foundation
 /// the display of a Note whose Markdown is being parsed.
 public protocol MkdownContext {
     
-    /// Let the context figure out the derived fields. 
-    func setTitleToParse(text: String, shortID: String)
-    
-    /// Set the Title of the Note whose Markdown text is to be parsed.
-    func setTitleToParse(id: String, text: String, fileName: String, shortID: String)
+    /// Identify the note that is about to be parsed. 
+    /// - Parameters:
+    ///   - id: The common ID for the note, to be used by Notenik. 
+    ///   - text: A textual representation of the note ID, to be read by humans.
+    ///   - fileName: The common filename for the note. 
+    ///   - shortID: The short, minimal, ID for the note. 
+    func identifyNoteToParse(id: String, text: String, fileName: String, shortID: String)
     
     /// Expose the usage of a Markdown command found within the page.
     func exposeMarkdownCommand(_ command: String)
