@@ -4105,6 +4105,11 @@ public class MkdownParser {
             var modifiedLink = linkURL
             if options.flattenImageLinks && !linkURL.contains("://") {
                 modifiedLink = StringUtils.toCommonFileName(linkURL, leavingSlashes: true)
+                if let relPath = options.relativePathToRoot {
+                    if !relPath.isEmpty {
+                        modifiedLink = relPath + modifiedLink
+                    }
+                }
             }
             writer.image(alt: linkText, path: modifiedLink, title: linkTitle)
             if mkdownContext != nil {
