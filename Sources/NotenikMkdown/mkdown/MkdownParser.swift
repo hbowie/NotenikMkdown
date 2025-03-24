@@ -3,7 +3,7 @@
 //  NotenikMkdown
 //
 //  Created by Herb Bowie on 2/25/20.
-//  Copyright © 2020 - 2024 Herb Bowie (https://hbowie.net)
+//  Copyright © 2020 - 2025 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -2280,6 +2280,8 @@ public class MkdownParser {
                     addCharAsChunk(char: char, type: .backtickQuote, lastChar: lastChar, line: line)
                 case "&":
                     addCharAsChunk(char: char, type: .ampersand, lastChar: lastChar, line: line)
+                case ";":
+                    addCharAsChunk(char: char, type: .semicolon, lastChar: lastChar, line: line)
                 case "!":
                     addCharAsChunk(char: char, type: .exclamationMark, lastChar: lastChar, line: line)
                 case "~":
@@ -2520,7 +2522,7 @@ public class MkdownParser {
                 if withinTag { break }
                 if nextIndex >= chunks.count { break }
                 if chunks[nextIndex].startsWithSpace { break }
-                chunk.type = .entityStart
+                scanForEntityReferenceClosure(forChunkAt: index)
             case .leftSquareBracket:
                 if chunk.lineType == .code { break }
                 if withinCodeSpan { break }
@@ -2606,6 +2608,41 @@ public class MkdownParser {
                 break
             }
             index += 1
+        }
+    }
+    
+    func scanForEntityReferenceClosure(forChunkAt: Int) {
+        let firstChunk = chunks[forChunkAt]
+        var ref = ""
+        
+        var next = forChunkAt + 1
+        while next < chunks.count {
+            nextChunk = chunks[next]
+            switch nextChunk.type {
+            case .semicolon:
+                if ref.count > 1 && ref.count <= 16 {
+                    firstChunk.type = .entityStart
+                    nextChunk.type = .entityEnd
+                }
+                return
+            case .plaintext:
+                if nextChunk.endsWithSpace || nextChunk.endsWithSpace {
+                    return
+                }
+                ref.append(nextChunk.text)
+                if ref.count > 16 {
+                    return
+                }
+            case .poundSign:
+                if ref.isEmpty {
+                    ref.append(nextChunk.text)
+                } else {
+                    return
+                }
+            default:
+                return
+            }
+            next += 1
         }
     }
     
@@ -3669,6 +3706,12 @@ public class MkdownParser {
             switch chunk.type {
             case .ampersand:
                 writer.writeAmpersand()
+            case .entityStart:
+                writer.write("&")
+            case .semicolon:
+                writer.write(";")
+            case .entityEnd:
+                writer.write(";")
             case .apostrophe:
                 if options.curlyApostrophes {
                     writer.writeEndingSingleQuote()
