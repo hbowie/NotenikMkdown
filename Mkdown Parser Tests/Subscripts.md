@@ -1,6 +1,6 @@
 Title:  Subscripts
 
-Seq:    9.2
+Seq:    9.3
 
 Code:
 
@@ -11,6 +11,7 @@ But don't forget good old H~2~O.
 log 2~a~
 
 One must consider the value of x~z~ as well as x~y,z~.
+
 
 Body:
 

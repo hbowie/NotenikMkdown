@@ -2822,15 +2822,10 @@ public class MkdownParser {
     func scanForQuotes(forChunkAt: Int) {
         
         let firstChunk = chunks[forChunkAt]
-        if forChunkAt > 0 {
-            let priorChunk = chunks[forChunkAt - 1]
-            if priorChunk.type == .plaintext {
-                let priorChar = priorChunk.text.last
-                if priorChar != nil && priorChar!.isLetter {
-                    firstChunk.type = .apostrophe
-                    return
-                }
-            }
+        
+        if precedingCharIsLetter(forChunkAt: forChunkAt) {
+            firstChunk.type = .apostrophe
+            return
         }
         
         guard forChunkAt + 2 < chunks.count else { return }
@@ -3133,8 +3128,15 @@ public class MkdownParser {
     
     /// If we have an asterisk or an underline, look for the closing symbols to end the emphasis span.
     func scanForEmphasisClosure(forChunkAt: Int) {
+        
         start = forChunkAt
         startChunk = chunks[start]
+        
+        // Leave mid-word underlines as-is
+        if startChunk.type == .underline && precedingCharIsLetter(forChunkAt: forChunkAt) {
+            return
+        }
+        
         var next = start + 1
         consecutiveStartCount = 1
         leftToClose = 1
@@ -3204,6 +3206,15 @@ public class MkdownParser {
                 consecutiveCloseCount = 0
             }
         }
+    }
+    
+    func precedingCharIsLetter(forChunkAt: Int) -> Bool {
+        
+        guard forChunkAt > 0 else { return false }
+        let priorChunk = chunks[forChunkAt - 1]
+        guard priorChunk.type == .plaintext else { return false }
+        let priorChar = priorChunk.text.last
+        return (priorChar != nil && priorChar!.isLetter)
     }
     
     var possibleClosingTick = -1
