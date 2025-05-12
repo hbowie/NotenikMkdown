@@ -111,11 +111,6 @@ public class MkdownParser {
     var columnStyles: [String] = []
     var columnIndex = 0
     
-    var outlining: MkdownOutlining = .none
-    var outlineMod = 0
-    var outlineDepth = 0
-    var openDetails: [Bool] = [false, false, false, false, false, false, false]
-    
     var sectionOpen = false
     var sectionHeadingLevel = -1
     
@@ -1176,6 +1171,12 @@ public class MkdownParser {
     
     var openBlocks = MkdownBlockStack()
     
+    var outlining: MkdownOutlining = .none
+    var outlineMod = 0
+    var outlineDepth = 0
+    var openDetails: [Bool] = [false, false, false, false, false, false, false]
+    var outlineElements = 0
+    
     /// Now that we have the input divided into lines, and the lines assigned types,
     /// let's generate the output HTML.
     func linesOut() {
@@ -1268,6 +1269,7 @@ public class MkdownParser {
         outlining = .none
         outlineDepth = 0
         openDetails = [false, false, false, false, false, false, false]
+        outlineElements = 0
         openBlocks = MkdownBlockStack()
         checkBoxCount = 0
         
@@ -1327,7 +1329,7 @@ public class MkdownParser {
                 if listItemIndex > 0 {
                     let listIndex = listItemIndex - 1
                     let listBlock = openBlocks.blocks[listIndex]
-                    if listBlock.isListTag && listBlock.listWithParagraphs && outlining != .bullets {
+                    if listBlock.isListTag && listBlock.listWithParagraphs && outlining.noBullets {
                         let paraBlock = MkdownBlock("p")
                         openBlock(paraBlock.tag,
                                   footnoteItem: false,
@@ -1403,10 +1405,11 @@ public class MkdownParser {
             case .quoteFrom:
                 quoteFrom(line)
             case .unorderedItem:
-                if outlining == .bullets {
+                if outlining.forBullets {
                     writer.startSummary()
                     chunkAndWrite(line)
                     writer.finishSummary()
+                    outlineElements += 1
                 } else {
                     textToChunks(line)
                 }
@@ -1491,7 +1494,11 @@ public class MkdownParser {
                 }
                 writer.newLine()
             case .outlineBullets:
-                outlining = .bullets
+                if outlineElements == 0 && outlining == .headings {
+                    outlining = .headingsPlusBullets
+                } else {
+                    outlining = .bullets
+                }
                 outlineDepth = 0
                 if let modInt = Int(line.commandInfo.mods) {
                     outlineMod = modInt
@@ -1499,6 +1506,7 @@ public class MkdownParser {
             case .outlineHeadings:
                 outlining = .headings
                 outlineDepth = 0
+                outlineElements = 0
                 if let modInt = Int(line.commandInfo.mods) {
                     outlineMod = modInt
                 }
@@ -1564,7 +1572,7 @@ public class MkdownParser {
         }
         closeBlocks(from: 0)
         
-        if outlining == .headings{
+        if outlining.forHeadings {
             closeHeadingDetails(downTo: 1)
         }
         
@@ -2027,7 +2035,7 @@ public class MkdownParser {
                 } else {
                     writer.startListItem()
                 }
-                if outlining == .bullets {
+                if outlining.forBullets {
                     if outlineMod > outlineDepth {
                         writer.startDetails(klass: "list-item-\(outlineDepth)-details", openParm: "true")
                     } else {
@@ -2058,7 +2066,7 @@ public class MkdownParser {
                 injectKlass = ""
                 injectElement = ""
                 injectStyle = ""
-            } else if outlining == .bullets {
+            } else if outlining.forBullets {
                 outlineDepth += 1
                 writer.startUnorderedList(klass: "outline-list")
             } else if checkBox.count == 3 {
@@ -2084,9 +2092,9 @@ public class MkdownParser {
             writer.startSection(id: "section-for-\(headingID)")
             sectionOpen = true
         }
-        if outlining == .headings {
+        if outlining.forHeadings {
             closeHeadingDetails(downTo: level)
-            if outlining == .headings {
+            if outlining.forHeadings {
                 outlineDepth += 1
                 if outlineMod > outlineDepth {
                     writer.startDetails(klass: "heading-\(level)-details", openParm: "true")
@@ -2095,6 +2103,7 @@ public class MkdownParser {
                 }
                 openDetails[level] = true
                 writer.startSummary(id: StringUtils.toCommonFileName(text), klass: "heading-\(level)-summary")
+                outlineElements += 1
             }
         } else {
             writer.startHeading(level: level, id: headingID)
@@ -2155,7 +2164,7 @@ public class MkdownParser {
         case "h6":
             finishHeading(level: 6)
         case "li":
-            if outlining == .bullets {
+            if outlining.forBullets {
                 writer.finishDetails()
             }
             writer.finishListItem()
@@ -2170,7 +2179,7 @@ public class MkdownParser {
             tableSortable = false
             tableID = ""
         case "ul":
-            if outlining == .bullets {
+            if outlining.forBullets {
                 outlineDepth -= 1
                 if outlineDepth < 1 {
                     outlining = .none
@@ -2183,7 +2192,7 @@ public class MkdownParser {
     }
     
     func finishHeading(level: Int) {
-        if outlining == .headings {
+        if outlining.forHeadings {
             writer.finishSummary()
         } else {
             writer.finishHeading(level: level)
