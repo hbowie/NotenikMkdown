@@ -21,6 +21,7 @@ public struct MkdownConstants {
     //-------------------------------------------------------------
     
     public static let attachmentsCmd     = "attachments"
+    public static let authorsTableCmd    = "authorstable"
     public static let biblioCmd          = "biblio"
     public static let bylineCmd          = "byline"
     public static let calendarCmd        = "calendar"

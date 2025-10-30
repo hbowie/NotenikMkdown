@@ -12,6 +12,7 @@
 public enum MkdownLineType {
     case attachments
     case blank
+    case authorsTable
     case biblio
     case byline
     case calendar

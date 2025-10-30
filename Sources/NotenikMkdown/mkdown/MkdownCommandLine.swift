@@ -127,6 +127,9 @@ public class MkdownCommandLine {
         case MkdownConstants.attachmentsCmd:
             info.lineType = .attachments
             info.validCommand = true
+        case MkdownConstants.authorsTableCmd:
+            info.lineType = .authorsTable
+            info.validCommand = true
         case MkdownConstants.biblioCmd:
             info.lineType = .biblio
             info.validCommand = true

@@ -1349,6 +1349,11 @@ public class MkdownParser {
                     writer.spaceBeforeBlock()
                     writer.writeLine(mkdownContext!.mkdownAttachments())
                 }
+            case .authorsTable:
+                if mkdownContext != nil {
+                    writer.spaceBeforeBlock()
+                    writer.writeLine(mkdownContext!.mkdownAuthorsTable())
+                }
             case .biblio:
                 if mkdownContext != nil {
                     writer.spaceBeforeBlock()

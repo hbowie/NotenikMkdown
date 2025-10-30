@@ -70,6 +70,8 @@ public protocol MkdownContext {
     /// Generate a bibliography from Notes following this one. 
     func mkdownBibliography() -> String
     
+    func mkdownAuthorsTable() -> String
+    
     /// Provide links to file attachments. 
     func mkdownAttachments() -> String
     
