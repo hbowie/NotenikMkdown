@@ -1440,7 +1440,7 @@ public class MkdownParser {
                 writer.finishTableRow()
             case .index:
                 if mkdownContext != nil {
-                    writer.writeLine(mkdownContext!.mkdownIndex())
+                    writer.writeLine(mkdownContext!.mkdownIndex(mods: line.commandInfo.mods))
                 }
             case .inject:
                 injectElement = line.commandInfo.getParmElement()
@@ -1551,6 +1551,8 @@ public class MkdownParser {
             case .footer:
                 break
             case .nav:
+                break
+            case .navLeft:
                 break
             case .metadata:
                 break

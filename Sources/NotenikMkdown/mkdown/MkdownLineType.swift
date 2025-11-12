@@ -44,6 +44,7 @@ public enum MkdownLineType {
     case math
     case metadata
     case nav
+    case navLeft
     case orderedItem
     case ordinaryText
     case outlineBullets

@@ -37,6 +37,7 @@ public struct MkdownConstants {
     public static let indexCmd           = "index"
     public static let metadataCmd        = "metadata"
     public static let navCmd             = "nav"
+    public static let navLeftCmd         = "navleft"
     public static let outlineBulletsCmd  = "outlinebullets"
     public static let outlineHeadingsCmd = "outlineheadings"
     public static let quoteFromCmd       = "quotefrom"

@@ -198,6 +198,9 @@ public class MkdownCommandLine {
         case MkdownConstants.navCmd:
             info.lineType = .nav
             info.validCommand = true
+        case MkdownConstants.navLeftCmd:
+            info.lineType = .navLeft
+            info.validCommand = true
         case MkdownConstants.metadataCmd:
             info.lineType = .metadata
             info.validCommand = true

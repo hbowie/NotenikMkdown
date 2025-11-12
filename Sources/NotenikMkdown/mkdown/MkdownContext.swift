@@ -44,7 +44,9 @@ public protocol MkdownContext {
     func mkdownCollectionTOC(levelStart: Int, levelEnd: Int, details: Bool) -> String
     
     /// Return an index to the Collection, formatted in HTML.
-    func mkdownIndex() -> String
+    /// - Parameter mods: The index field name, if not the one and only for the collection.
+    /// - Returns: Fully formatted HTML.
+    func mkdownIndex(mods: String?) -> String
     
     /// Generate a page that will randomly navigate to another page. 
     func mkdownRandomNote(klassNames: String) -> String
