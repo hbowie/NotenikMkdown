@@ -34,12 +34,18 @@ public class MkdownParser {
     // Phase 2: Go through the lines, generating HTML output.
     // ===============================================================
     
-    var mdin = MkdownInputStack()
-    var textToInclude: String? = nil
+    public var mkdownContext: MkdownContext?
     
     public var options = MkdownOptions()
     
-    public var mkdownContext: MkdownContext?
+    public var html: String { return writer.code }
+    
+    public var wikiLinkList = WikiLinkList()
+    
+    public var counts = MkdownCounts()
+    
+    var mdin = MkdownInputStack()
+    var textToInclude: String? = nil
     
     var nextLine = MkdownLine()
     var lastLine = MkdownLine()
@@ -118,8 +124,6 @@ public class MkdownParser {
     var injectKlass = ""
     var injectID = ""
     var injectStyle = ""
-    
-    public var counts = MkdownCounts()
     
     // -----------------------------------------------------------
     //
@@ -1147,10 +1151,6 @@ public class MkdownParser {
     var mainlineComplete = false
     
     var writer = Markedup()
-    
-    public var html: String { return writer.code }
-    
-    public var wikiLinkList = WikiLinkList()
     
     var lastQuoteLevel = 0
     var openBlock = ""

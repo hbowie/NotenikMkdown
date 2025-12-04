@@ -24,7 +24,6 @@ public class WikiLink: Comparable, CustomStringConvertible, Equatable, Identifia
     }
     
     // From Title
-    var _ft = WikiLinkTarget()
     public var fromTarget: WikiLinkTarget {
         get {
             return _ft
@@ -33,6 +32,7 @@ public class WikiLink: Comparable, CustomStringConvertible, Equatable, Identifia
             _ft = newValue
         }
     }
+    var _ft = WikiLinkTarget()
     
     public func setFrom(path: String, item: String) {
         fromTarget = WikiLinkTarget(path: path, item: item)

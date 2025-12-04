@@ -32,14 +32,14 @@ public class WikiLinkTarget: Comparable, CustomStringConvertible, Equatable, Ide
     }
     
     public init(path: String, item: String) {
-        _path = path
-        _item = item
-        _itemID = StringUtils.toCommon(_item)
+        self.path = path
+        self.item = item
+        self.itemID = item
     }
     
     public func set(_ linkText: String) {
-        (_path, _item) = StringUtils.splitPath(linkText)
-        _itemID = StringUtils.toCommon(_item)
+        (path, item) = StringUtils.splitPath(linkText)
+        itemID = item
     }
     
     public var isEmpty: Bool {
@@ -59,15 +59,31 @@ public class WikiLinkTarget: Comparable, CustomStringConvertible, Equatable, Ide
     }
     
     public var path: String {
-        return _path
+        get {
+            return _path
+        }
+        set {
+            _path = StringUtils.trim(newValue)
+        }
     }
     
     public var item: String {
-        return _item
+        get {
+            return _item
+        }
+        set {
+            _item = StringUtils.trim(newValue)
+        }
     }
     
     public var itemID: String {
-        return _itemID
+        get {
+            return _itemID
+        }
+        set {
+            _itemID = StringUtils.toCommon(newValue)
+        }
+        
     }
     
     public var pathSlashItem: String {

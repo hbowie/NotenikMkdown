@@ -42,12 +42,13 @@ public class WikiLinkWrangler {
             openParmValue = "true"
         }
         
-        markedup.startDetails(summary: properLabel, openParm: openParmValue)
+        markedup.startDetails(summary: "\(properLabel):", openParm: openParmValue)
         markedup.startUnorderedList(klass: nil)
         for target in targets {
             markedup.startListItem()
-            markedup.link(text: target.pathSlashItem,
-                          path: assembleWikiLink(target: target))
+            markedup.link(text: target.item,
+                          path: assembleWikiLink(target: target),
+                          klass: "wiki-link")
             markedup.finishListItem()
         }
         markedup.finishUnorderedList()

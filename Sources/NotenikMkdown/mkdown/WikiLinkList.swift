@@ -28,6 +28,7 @@ public class WikiLinkList {
         newLink.originalTarget = wikiLink.originalTarget
         newLink.updatedTarget = wikiLink.updatedTarget
         newLink.targetFound = targetFound
+        addLink(newLink)
     }
     
     public var count: Int {
@@ -38,19 +39,24 @@ public class WikiLinkList {
         return links.isEmpty
     }
     
-    public func addLink(_ link: WikiLink) {
-        links.append(link)
-    }
-    
     public func addList(moreLinks: WikiLinkList) {
         for wikiLink in moreLinks.links {
-            links.append(wikiLink)
+            addLink(wikiLink)
         }
+    }
+    
+    public func addLink(_ link: WikiLink) {
+        for existingLink in links {
+            guard existingLink != link else {
+                return
+            }
+        }
+        links.append(link)
     }
     
     public func display() {
         print(" ")
-        print("WikiLinkList.display")
+        print("WikiLinkList.display with \(links.count) links")
         for link in links {
             link.display()
         }
