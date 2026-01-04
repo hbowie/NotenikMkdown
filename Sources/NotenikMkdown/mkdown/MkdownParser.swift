@@ -38,7 +38,11 @@ public class MkdownParser {
     
     public var options = MkdownOptions()
     
+    var writer = Markedup()
+    
     public var html: String { return writer.code }
+    
+    public var plainText = PlainText()
     
     public var wikiLinkList = WikiLinkList()
     
@@ -815,7 +819,7 @@ public class MkdownParser {
             let cmdLine = MkdownCommandLine()
             nextLine.commandInfo = cmdLine.checkLine(nextLine.line)
             if nextLine.commandInfo.validCommand {
-                exposeMarkdownCommand(nextLine.commandInfo.command)
+                exposeMarkdownCommand(nextLine.commandInfo.command, mods: nextLine.commandInfo.mods)
                 nextLine.type = nextLine.commandInfo.lineType
                 if nextLine.type == .tableOfContents {
                     tocFound = true
@@ -1150,8 +1154,6 @@ public class MkdownParser {
     
     var mainlineComplete = false
     
-    var writer = Markedup()
-    
     var lastQuoteLevel = 0
     var openBlock = ""
     
@@ -1265,6 +1267,7 @@ public class MkdownParser {
     /// Go through the Markdown lines, writing out HTML.
     func writeHTML() {
         writer = Markedup()
+        plainText = PlainText()
         lastQuoteLevel = 0
         outlining = .none
         outlineDepth = 0
@@ -1392,6 +1395,7 @@ public class MkdownParser {
             case .code:
                 chunkAndWrite(line)
                 writer.newLine()
+                plainText.append("\n")
             case .heading:
                 if line.headingNumber > 0 {
                     let headingNumberChunk = MkdownChunk(line: line)
@@ -1556,6 +1560,12 @@ public class MkdownParser {
                 break
             case .metadata:
                 break
+            case .titleSuffix:
+                break
+            case .description:
+                break
+            case .author:
+                break
             }
             
             if line.endOfFootnote {
@@ -1587,6 +1597,8 @@ public class MkdownParser {
             writer.finishSection()
         }
         
+        plainText.ensureBlankLine()
+        
         if footnoteLines.count > 0 {
             finishWritingFootnotes()
         }
@@ -1604,6 +1616,7 @@ public class MkdownParser {
         
         // Start the paragraph
         writer.startParagraph(klass: MkdownConstants.bylineClass)
+        plainText.ensureBlankLine()
         
         // See what info we have
         let author = line.commandInfo.getParm(atIndex: 0)
@@ -1612,8 +1625,11 @@ public class MkdownParser {
         
         if prefix.isEmpty {
             writer.write("by ")
+            plainText.append("by ")
         } else {
             writer.write(prefix)
+            plainText.append(prefix)
+            plainText.ensureSpace()
             if !prefix.hasSuffix(" ") {
                 writer.write(" ")
             }
@@ -1623,6 +1639,7 @@ public class MkdownParser {
         
         // End the paragraph
         writer.finishParagraph()
+        plainText.ensureBlankLine()
     }
     
     func quoteFrom(_ line: MkdownLine) {
@@ -1644,13 +1661,15 @@ public class MkdownParser {
         let klass = line.commandInfo.getParm(atIndex: 1)
         let id = line.commandInfo.getParm(atIndex: 2)
         writer.startSegment(element: element, klass: klass, id: id)
+        plainText.ensureBlankLine()
         segmentStack.append(element)
         
     }
     
     func endSegment() {
         guard !segmentStack.isEmpty else { return }
-        writer.finishSegment(element: segmentStack.removeLast()) 
+        writer.finishSegment(element: segmentStack.removeLast())
+        writer.ensureBlankLine()
     }
     
     func formatLink(link: String, text: String, citeType: CiteType, relationship: String? = nil) {
@@ -1659,13 +1678,16 @@ public class MkdownParser {
         var post = ""
         switch citeType {
         case .none:
+            self.plainText.append(text)
             break
         case .minor:
             pre = "&ldquo;"
             post = "&rdquo;"
+            self.plainText.append("\"\(text)\"")
         case .major:
             pre = "<cite>"
             post = "</cite>"
+            self.plainText.append("*\(text)*")
         }
         let textPlus = pre + text + post
         if link.isEmpty {
@@ -1677,9 +1699,9 @@ public class MkdownParser {
         }
     }
     
-    func exposeMarkdownCommand(_ command: String) {
+    func exposeMarkdownCommand(_ command: String, mods: String? = nil) {
         if let context = mkdownContext {
-            context.exposeMarkdownCommand(command)
+            context.exposeMarkdownCommand(command, mods: mods)
         }
     }
     
@@ -1828,6 +1850,7 @@ public class MkdownParser {
     /// Write out HTML to end the footnote section of the document.
     func finishWritingFootnotes() {
         writer.finishDiv()
+        plainText.ensureBlankLine()
     }
     
     /// Write out HTML to start citations section of the document.
@@ -2002,6 +2025,8 @@ public class MkdownParser {
         switch tag {
         case "blockquote":
             writer.startBlockQuote()
+            plainText.ensureBlankLine()
+            plainText.append("\"")
         case "code":
             writer.startCode()
         case "dd":
@@ -2052,6 +2077,7 @@ public class MkdownParser {
             }
         case "ol":
             writer.startOrderedList(klass: nil)
+            plainText.ensureBlankLine()
         case "p":
             if injectElement == "p" {
                 writer.startParagraph(klass: injectKlass, id: injectID, style: injectStyle)
@@ -2062,6 +2088,7 @@ public class MkdownParser {
             } else {
                 writer.startParagraph()
             }
+            plainText.ensureBlankLine()
         case "pre":
             writer.startPreformatted()
         case "table":
@@ -2081,6 +2108,7 @@ public class MkdownParser {
             } else {
                 writer.startUnorderedList()
             }
+            plainText.ensureBlankLine()
         default:
             print("Don't know how to open tag of \(tag)")
         }
@@ -2088,6 +2116,7 @@ public class MkdownParser {
     }
     
     func startHeading(level: Int, text: String) {
+        plainText.ensureBlankLine()
         if sectionHeadingLevel == -1 {
             sectionHeadingLevel = level
         }
@@ -2150,6 +2179,7 @@ public class MkdownParser {
         switch tag {
         case "blockquote":
             writer.finishBlockQuote()
+            plainText.ensureBlankLine()
         case "code":
             writer.finishCode()
         case "dd":
@@ -2177,6 +2207,7 @@ public class MkdownParser {
             writer.finishListItem()
         case "ol":
             writer.finishOrderedList()
+            plainText.ensureBlankLine()
         case "p":
             writer.finishParagraph()
         case "pre":
@@ -2193,12 +2224,14 @@ public class MkdownParser {
                 }
             }
             writer.finishUnorderedList()
+            plainText.ensureBlankLine()
         default:
             print("Don't know how to close tag of \(tag)")
         }
     }
     
     func finishHeading(level: Int) {
+        plainText.ensureBlankLine()
         if outlining.forHeadings {
             writer.finishSummary()
         } else {
@@ -3228,9 +3261,18 @@ public class MkdownParser {
         
         guard forChunkAt > 0 else { return false }
         let priorChunk = chunks[forChunkAt - 1]
-        guard priorChunk.type == .plaintext else { return false }
-        let priorChar = priorChunk.text.last
-        return (priorChar != nil && priorChar!.isLetter)
+        switch priorChunk.type {
+        case .endEmphasis:
+            return true
+        case .plaintext:
+            let priorChar = priorChunk.text.last
+            return (priorChar != nil && (priorChar!.isLetter
+                                         || priorChar == ">" || priorChar == "*" || priorChar == "_"))
+        case .tagEnd:
+            return true
+        default:
+            return false
+        }
     }
     
     var possibleClosingTick = -1
@@ -3733,18 +3775,23 @@ public class MkdownParser {
             switch chunk.type {
             case .ampersand:
                 writer.writeAmpersand()
+                plainText.append("&")
             case .entityStart:
                 writer.write("&")
+                plainText.append("&")
             case .semicolon:
                 writer.write(";")
+                plainText.append(";")
             case .entityEnd:
                 writer.write(";")
+                plainText.append(";")
             case .apostrophe:
                 if options.curlyApostrophes {
                     writer.writeEndingSingleQuote()
                 } else {
                     writer.writeApostrophe()
                 }
+                plainText.append("\'")
             case .backSlash:
                 if withinCodeSpan || withinMathSpan {
                     writer.write("\\")
@@ -3753,12 +3800,14 @@ public class MkdownParser {
                 }
             case .leftAngleBracket:
                 writer.writeLeftAngleBracket()
+                plainText.append("<")
             case .rightAngleBracket:
                 if withinCodeSpan {
                     writer.writeRightAngleBracket()
                 } else {
                     writer.write(">")
                 }
+                plainText.append(">")
             case .startEmphasis:
                 writer.startEmphasis()
             case .endEmphasis:
@@ -3915,27 +3964,33 @@ public class MkdownParser {
                 } else {
                     writer.ellipsis()
                 }
+                plainText.append("...")
             case .endash:
                 if withinCodeSpan {
                     writer.write("--")
                 } else {
                     writer.writeEnDash()
                 }
+                plainText.append("-")
             case .emdash:
                 if withinCodeSpan {
                     writer.write("---")
                 } else {
                     writer.writeEmDash()
                 }
+                plainText.append("--")
             case .singleCurlyQuoteOpen:
                 writer.leftSingleQuote()
+                plainText.append("\'")
             case .singleCurlyQuoteClose:
                 writer.rightSingleQuote()
+                plainText.append("\'")
             case .doubleCurlyQuoteOpen:
                 writer.leftDoubleQuote()
+                plainText.append("\"")
             case .doubleCurlyQuoteClose:
                 writer.rightDoubleQuote()
-                
+                plainText.append("\"")
             // Deal with table pipes
             case .headerColumnStart:
                 var onclick = ""
@@ -3984,6 +4039,7 @@ public class MkdownParser {
                 writer.finishLink()
             default:
                 writer.append(chunk.text)
+                plainText.append(chunk.text)
             }
         }
     }

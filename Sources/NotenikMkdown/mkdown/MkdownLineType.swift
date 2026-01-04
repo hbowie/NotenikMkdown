@@ -12,6 +12,7 @@
 public enum MkdownLineType {
     case attachments
     case blank
+    case author
     case authorsTable
     case biblio
     case byline
@@ -23,6 +24,7 @@ public enum MkdownLineType {
     case codeFence
     case defTerm
     case defDefinition
+    case description
     case endFigure
     case endSegment
     case figure
@@ -62,6 +64,7 @@ public enum MkdownLineType {
     case tagsCloud
     case tagsOutline
     case teasers
+    case titleSuffix
     case tocForCollection
     case unorderedItem
     

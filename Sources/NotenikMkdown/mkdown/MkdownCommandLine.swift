@@ -4,7 +4,7 @@
 //
 //  Created by Herb Bowie on 6/21/24.
 //
-//  Copyright © 2024 Herb Bowie (https://hbowie.net)
+//  Copyright © 2024-2026 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -88,7 +88,7 @@ public class MkdownCommandLine {
             }
             
             if prefixComplete && info.commandComplete && styleComplete && !modsComplete {
-                if char == ":" {
+                if char == ":" && info.mods.isEmpty {
                     // do nothing
                 } else if char == "]" || char == "}" {
                     modsComplete = true
@@ -126,6 +126,9 @@ public class MkdownCommandLine {
         switch info.command {
         case MkdownConstants.attachmentsCmd:
             info.lineType = .attachments
+            info.validCommand = true
+        case MkdownConstants.authorCmd:
+            info.lineType = .author
             info.validCommand = true
         case MkdownConstants.authorsTableCmd:
             info.lineType = .authorsTable
@@ -221,6 +224,12 @@ public class MkdownCommandLine {
             info.validCommand = true
         case MkdownConstants.endSegmentCmd:
             info.lineType  = .endSegment
+            info.validCommand = true
+        case MkdownConstants.titleSuffixCmd:
+            info.lineType  = .titleSuffix
+            info.validCommand = true
+        case MkdownConstants.descriptionCmd:
+            info.lineType  = .description
             info.validCommand = true
         default:
             break

@@ -26,7 +26,7 @@ public protocol MkdownContext {
     func identifyNoteToParse(id: String, text: String, fileName: String, shortID: String)
     
     /// Expose the usage of a Markdown command found within the page.
-    func exposeMarkdownCommand(_ command: String)
+    func exposeMarkdownCommand(_ command: String, mods: String?)
     
     /// Expose each image link found within the Markdown. 
     func exposeImageLink(original: String, modified: String)

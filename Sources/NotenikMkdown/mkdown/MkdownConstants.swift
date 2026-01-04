@@ -21,12 +21,14 @@ public struct MkdownConstants {
     //-------------------------------------------------------------
     
     public static let attachmentsCmd     = "attachments"
+    public static let authorCmd          = "author"
     public static let authorsTableCmd    = "authorstable"
     public static let biblioCmd          = "biblio"
     public static let bylineCmd          = "byline"
     public static let calendarCmd        = "calendar"
     public static let captionCmd         = "caption"
     public static let collectionTocCmd   = "collectiontoc"
+    public static let descriptionCmd     = "description"
     public static let endfigureCmd       = "endfigure"
     public static let endSegmentCmd      = "endsegment"
     public static let figureCmd          = "figure"
@@ -49,6 +51,7 @@ public struct MkdownConstants {
     public static let tagsCloudCmd       = "tagscloud"
     public static let tagsOutlineCmd     = "tagsoutline"
     public static let teasersCmd         = "teasers"
+    public static let titleSuffixCmd     = "titlesuffix"
     public static let tocCmd             = "toc"
     
     public static let checked            = "checked"
