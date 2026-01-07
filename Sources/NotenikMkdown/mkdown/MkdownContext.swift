@@ -23,7 +23,7 @@ public protocol MkdownContext {
     ///   - text: A textual representation of the note ID, to be read by humans.
     ///   - fileName: The common filename for the note. 
     ///   - shortID: The short, minimal, ID for the note. 
-    func identifyNoteToParse(id: String, text: String, fileName: String, shortID: String)
+    func identifyNoteToParse(id: String, text: String, fileName: String, shortID: String, initialDisplay: Bool)
     
     /// Expose the usage of a Markdown command found within the page.
     func exposeMarkdownCommand(_ command: String, mods: String?)
