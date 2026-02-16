@@ -4,7 +4,7 @@
 //
 //  Created by Herb Bowie on 5/2/23.
 //
-//  Copyright © 2023 Herb Bowie (https://hbowie.net)
+//  Copyright © 2023-2026 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -36,6 +36,12 @@ public class WikiLinkDisplay {
         format = .common
         prefix = interNoteDomain
         suffix = ""
+    }
+    
+    public func makeAbsolute(site: String, path: String = "", ext: String = ".html") {
+        prefix = FileUtils.joinPaths(path1: site, path2: path)
+        format = .fileName
+        suffix = ext
     }
     
     public func set(format: WikiLinkFormat, prefix: String, suffix: String) {
