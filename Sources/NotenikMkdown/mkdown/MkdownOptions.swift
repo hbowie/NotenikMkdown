@@ -28,7 +28,6 @@ public class MkdownOptions {
     public var relativePathToRoot: String?
     
     public init() {
-        
     }
     
     public func getHtmlScript() -> String {

@@ -23,7 +23,6 @@ public class WikiLinkDisplay {
     public var suffix = ""
     
     public init() {
-        
     }
     
     public init(format: WikiLinkFormat, prefix: String, suffix: String) {
