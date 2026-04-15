@@ -3,7 +3,7 @@
 //  NotenikMkdown
 //
 //  Created by Herb Bowie on 2/25/20.
-//  Copyright © 2020 - 2025 Herb Bowie (https://hbowie.net)
+//  Copyright © 2020 - 2026 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -2083,7 +2083,7 @@ public class MkdownParser {
                 writer.startParagraph(klass: injectKlass, id: injectID, style: injectStyle)
                 injectElement = ""
                 injectKlass = ""
-                injectElement = ""
+                injectID = ""
                 injectStyle = ""
             } else {
                 writer.startParagraph()
@@ -2092,7 +2092,15 @@ public class MkdownParser {
         case "pre":
             writer.startPreformatted()
         case "table":
-            writer.startTable(id: tableID)
+            if injectElement == "table" && !injectKlass.isEmpty {
+                writer.startTable(klass: injectKlass, id: tableID)
+                injectElement = ""
+                injectKlass = ""
+                injectID = ""
+                injectStyle = ""
+            } else {
+                writer.startTable(id: tableID)
+            }
         case "ul":
             if injectElement == "ul" {
                 writer.startUnorderedList(klass: injectKlass, id: injectID, style: injectStyle)
