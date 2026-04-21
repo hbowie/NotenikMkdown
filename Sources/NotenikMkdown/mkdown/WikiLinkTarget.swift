@@ -4,7 +4,7 @@
 //
 //  Created by Herb Bowie on 9/1/22.
 //
-//  Copyright © 2022 Herb Bowie (https://hbowie.net)
+//  Copyright © 2022 – 2026 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -38,7 +38,9 @@ public class WikiLinkTarget: Comparable, CustomStringConvertible, Equatable, Ide
     }
     
     public func set(_ linkText: String) {
-        (path, item) = StringUtils.splitPath(linkText)
+        let extraneous = CharacterSet(charactersIn: " '[];")
+        let trimmed = linkText.trimmingCharacters(in: extraneous)
+        (path, item) = StringUtils.splitPath(trimmed)
         itemID = item
     }
     

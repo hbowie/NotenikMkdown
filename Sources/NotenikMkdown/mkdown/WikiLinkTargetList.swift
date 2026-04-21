@@ -4,7 +4,7 @@
 //
 //  Created by Herb Bowie on 10/3/21.
 //
-//  Copyright © 2021 - 2023 Herb Bowie (https://hbowie.net)
+//  Copyright © 2021 - 2026 Herb Bowie (https://hbowie.net)
 //
 //  This programming code is published as open source software under the
 //  terms of the MIT License (https://opensource.org/licenses/MIT).
@@ -20,6 +20,10 @@ public class WikiLinkTargetList: CustomStringConvertible, Collection, Sequence {
     public typealias Element = WikiLinkTarget
     
     public var list: [WikiLinkTarget] = []
+    
+    public var count: Int {
+        return list.count
+    }
     
     public var startIndex: Int {
         return 0
@@ -61,7 +65,7 @@ public class WikiLinkTargetList: CustomStringConvertible, Collection, Sequence {
     
     /// Examine a line of text, separating it into Note identifiers, with
     /// paired semicolons serving as the separators.
-    public func append(_ line: String) {
+    public func appendLine(_ line: String) {
         var pendingSpaces = 0
         var semiStash = ""
         var nextNoteIdBasis = ""
@@ -101,6 +105,7 @@ public class WikiLinkTargetList: CustomStringConvertible, Collection, Sequence {
     /// by the lowest common denominator representation.
     /// - Parameter title: The Title of a Note.
     public func add(noteIdBasis: String) {
+        guard !noteIdBasis.isEmpty else { return }
         let newPointer = WikiLinkTarget(noteIdBasis)
         var index = 0
         while index < list.count && newPointer > list[index] {
