@@ -2885,6 +2885,10 @@ public class MkdownParser {
             return
         }
         
+        if precedingCharIsNumber(forChunkAt: forChunkAt)  && nextCharIsBlank(forChunkAt: forChunkAt) {
+            return
+        }
+        
         guard forChunkAt + 2 < chunks.count else { return }
         
         var next = forChunkAt + 1
@@ -3265,6 +3269,23 @@ public class MkdownParser {
         }
     }
     
+    func precedingCharIsNumber(forChunkAt: Int) -> Bool {
+        
+        guard forChunkAt > 0 else { return false }
+        let priorChunk = chunks[forChunkAt - 1]
+        switch priorChunk.type {
+        case .endEmphasis:
+            return false
+        case .plaintext:
+            let priorChar = priorChunk.text.last
+            return (priorChar != nil && priorChar!.isNumber)
+        case .tagEnd:
+            return false
+        default:
+            return false
+        }
+    }
+    
     func precedingCharIsLetter(forChunkAt: Int) -> Bool {
         
         guard forChunkAt > 0 else { return false }
@@ -3281,6 +3302,17 @@ public class MkdownParser {
         default:
             return false
         }
+    }
+    
+    func nextCharIsBlank(forChunkAt: Int) -> Bool {
+        
+        let nextChunkAt = forChunkAt + 1
+        guard nextChunkAt < chunks.count else { return true }
+        let nextChunk = chunks[nextChunkAt]
+        guard nextChunk.type == .plaintext else { return false }
+        let nextChar = nextChunk.text.first
+        guard nextChar != nil else { return true }
+        return nextChar!.isWhitespace
     }
     
     var possibleClosingTick = -1
